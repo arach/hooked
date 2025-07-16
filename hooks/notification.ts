@@ -162,6 +162,6 @@ logger.info('Notification script completed');
 /* test
  * ----
  *
- * echo '{"message": "Build completed successfully", "transcript_path": "/Users/arach/dev/speech-service"}' | pnpx tsx notification.ts 
+ * echo '{"message": "Build completed successfully", "transcript_path": "/Users/arach/dev/speech-service"}' | npx tsx notification.ts 
  *
  * */

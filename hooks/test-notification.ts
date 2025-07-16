@@ -14,7 +14,7 @@ console.log('📤 Sending test payload:', JSON.stringify(testPayload, null, 2));
 
 // Execute the notification script with test data
 try {
-  const result = execSync(`echo '${JSON.stringify(testPayload)}' | pnpx tsx notification.ts test-notification`, {
+  const result = execSync(`echo '${JSON.stringify(testPayload)}' | npx tsx notification.ts test-notification`, {
     encoding: 'utf8',
     stdio: 'pipe'
   });

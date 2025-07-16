@@ -1,0 +1,16 @@
+{
+  "name": "hooked",
+  "version": "1.0.0",
+  "description": "Claude Code hooks notification system",
+  "main": "deploy.ts",
+  "scripts": {
+    "deploy": "npx tsx deploy.ts",
+    "test": "cd hooks && npx tsx test-notification.ts"
+  },
+  "keywords": ["claude", "hooks", "notifications"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

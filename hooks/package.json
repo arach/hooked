@@ -12,6 +12,10 @@
   "type": "commonjs",
   "dependencies": {
     "@types/winston": "^2.4.4",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "speakeasy": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
   }
 }

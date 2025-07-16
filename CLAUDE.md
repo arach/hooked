@@ -36,10 +36,10 @@ The project is structured with a main hooks directory containing:
 cd hooks && npm install
 
 # Run notification handler (typically called by Claude Code hooks)
-echo '{"message": "Test message", "transcript_path": "/path/to/project"}' | pnpx tsx notification.ts hook-type
+echo '{"message": "Test message", "transcript_path": "/path/to/project"}' | npx tsx notification.ts hook-type
 
 # Run test script
-pnpx tsx test-notification.ts
+npx tsx test-notification.ts
 
 # Check logs
 tail -f ~/logs/claude-hooks/notification.log

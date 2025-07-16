@@ -26,8 +26,8 @@ A sophisticated notification system for Claude Code hooks that transforms techni
 git clone git@github.com:arach/hooked.git
 cd hooked
 
-# Install dependencies
-cd hooks && npm install
+# Deploy to Claude Code hooks
+npx tsx deploy.ts
 ```
 
 ### Usage
@@ -36,10 +36,10 @@ The notification handler is typically called by Claude Code hooks, but can be te
 
 ```bash
 # Basic usage
-echo '{"message": "Claude needs your permission", "transcript_path": "/path/to/project"}' | pnpx tsx notification.ts permission-request
+echo '{"message": "Claude needs your permission", "transcript_path": "/path/to/project"}' | npx tsx notification.ts permission-request
 
 # Run the test suite
-pnpx tsx test-notification.ts
+npx tsx test-notification.ts
 
 # Monitor logs in real-time
 tail -f ~/logs/claude-hooks/notification.log
@@ -93,7 +93,7 @@ To integrate with Claude Code hooks, configure your Claude settings to call the 
 ```json
 {
   "hooks": {
-    "permission-request": "echo '{\"message\": \"{{message}}\", \"transcript_path\": \"{{transcript_path}}\"}' | pnpx tsx /path/to/hooked/hooks/notification.ts permission-request"
+    "permission-request": "echo '{\"message\": \"{{message}}\", \"transcript_path\": \"{{transcript_path}}\"}' | npx tsx /path/to/hooked/hooks/notification.ts permission-request"
   }
 }
 ```
@@ -104,10 +104,10 @@ To integrate with Claude Code hooks, configure your Claude settings to call the 
 
 ```bash
 # Test with sample data
-pnpx tsx test-notification.ts
+npx tsx test-notification.ts
 
 # Test specific notification types
-echo '{"message": "Build completed", "transcript_path": "/Users/dev/my-project"}' | pnpx tsx notification.ts build-complete
+echo '{"message": "Build completed", "transcript_path": "/Users/dev/my-project"}' | npx tsx notification.ts build-complete
 ```
 
 ### Log Analysis
@@ -139,13 +139,13 @@ grep "my-project" ~/logs/claude-hooks/notification.log
 cd hooks && npm install
 
 # Run in development mode
-pnpx tsx notification.ts test-message
+npx tsx notification.ts test-message
 
 # Monitor logs during development
 tail -f ~/logs/claude-hooks/notification.log
 
 # Test notification pipeline
-pnpx tsx test-notification.ts
+npx tsx test-notification.ts
 ```
 
 ## 📊 Logging
