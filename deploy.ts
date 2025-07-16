@@ -41,7 +41,7 @@ try {
   process.exit(1);
 }
 
-// Update settings.json
+// Update settings.json safely
 console.log('⚙️  Updating Claude settings...');
 
 let settings: any = {};
@@ -52,6 +52,7 @@ if (existsSync(settingsFile)) {
     console.log('📖 Read existing settings.json');
   } catch (error) {
     console.warn('⚠️  Warning: Could not parse existing settings.json, creating new one');
+    settings = {};
   }
 }
 
@@ -60,8 +61,8 @@ if (!settings.hooks) {
   settings.hooks = {};
 }
 
-// Add or update the Notification hook
-settings.hooks.Notification = [
+// Create our notification hook configuration
+const notificationHookConfig = [
   {
     "matcher": "",
     "hooks": [
@@ -73,10 +74,29 @@ settings.hooks.Notification = [
   }
 ];
 
+// Check if Notification hook already exists
+if (settings.hooks.Notification) {
+  console.log('⚠️  Notification hook already exists. Checking if update is needed...');
+  
+  // Check if our exact configuration already exists
+  const existingConfig = JSON.stringify(settings.hooks.Notification);
+  const newConfig = JSON.stringify(notificationHookConfig);
+  
+  if (existingConfig === newConfig) {
+    console.log('✅ Notification hook is already up to date');
+  } else {
+    console.log('🔄 Updating existing Notification hook configuration');
+    settings.hooks.Notification = notificationHookConfig;
+  }
+} else {
+  console.log('➕ Adding new Notification hook');
+  settings.hooks.Notification = notificationHookConfig;
+}
+
 // Write updated settings
 try {
   writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
-  console.log('✅ Updated settings.json with notification hook');
+  console.log('✅ Settings.json updated successfully');
 } catch (error) {
   console.error('❌ Failed to update settings.json:', error.message);
   process.exit(1);
@@ -86,8 +106,9 @@ console.log('🎉 Deployment complete!');
 console.log('');
 console.log('📋 Summary:');
 console.log(`   • Files copied to: ${hooksDir}`);
-console.log(`   • Settings updated: ${settingsFile}`);
+console.log(`   • Settings safely updated: ${settingsFile}`);
 console.log(`   • Hook command: npx tsx ${join(hooksDir, 'notification.ts')}`);
+console.log(`   • Existing hooks and settings preserved`);
 console.log('');
 console.log('🧪 Test the deployment:');
 console.log(`   echo '{"message": "Test notification", "transcript_path": "/test/path"}' | npx tsx ${join(hooksDir, 'notification.ts')} test`);

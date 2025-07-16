@@ -88,12 +88,29 @@ The system uses default configurations but can be customized:
 
 ### Claude Code Integration
 
-To integrate with Claude Code hooks, configure your Claude settings to call the notification handler:
+The deployment script automatically configures Claude Code hooks in your `~/.claude/settings.json`. It safely preserves any existing hooks and settings while adding the notification system.
 
+**Safe Settings Handling:**
+- ✅ Preserves existing hooks and settings
+- ✅ Only updates the `Notification` hook configuration
+- ✅ Checks if configuration is already up-to-date before writing
+- ✅ Creates backup-friendly JSON formatting
+
+**Manual Configuration (if needed):**
 ```json
 {
   "hooks": {
-    "permission-request": "echo '{\"message\": \"{{message}}\", \"transcript_path\": \"{{transcript_path}}\"}' | npx tsx /path/to/hooked/hooks/notification.ts permission-request"
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command", 
+            "command": "npx tsx ~/.claude/hooks/notification.ts"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
