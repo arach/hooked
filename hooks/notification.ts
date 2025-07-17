@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import { speak } from 'speakeasy';
+const speakeasy = require('@arach/speakeasy');
+const speak = speakeasy.speak;
+
+// Debug logging
+console.log('Speakeasy object:', typeof speakeasy);
+console.log('Speak function:', typeof speak);
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -100,12 +105,19 @@ process.stdin.on('end', async () => {
     logger.info('Processing transcript path', { transcriptPath, projectName });
     
     if (transcriptPath) {
-      const pathMatch = transcriptPath.match(/projects\/[^\/]*-([^\/]+)\//) || 
-                       transcriptPath.match(/projects\/([^\/]+)\//);
+      // Updated regex to handle project names with dots
+      // First try to match projects/directory-name/ format
+      let pathMatch = transcriptPath.match(/projects\/[^\/]*-([^\/]+)\//);
       if (pathMatch) {
         projectName = pathMatch[1].replace(/-/g, ' ');
-        logger.info('Extracted project name from path', { projectName, originalPath: transcriptPath });
+      } else {
+        // If no dash format, try to match the full project directory name
+        pathMatch = transcriptPath.match(/projects\/([^\/]+)\//);
+        if (pathMatch) {
+          projectName = pathMatch[1].replace(/-/g, ' ').replace(/\./g, ' dot ');
+        }
       }
+      logger.info('Extracted project name from path', { projectName, originalPath: transcriptPath });
     }
     
     // Create a more natural speech message with context
@@ -134,6 +146,12 @@ process.stdin.on('end', async () => {
       originalMessage: message, 
       speechMessage, 
       projectName 
+    });
+    
+    // Debug the speak function
+    logger.info('About to call speak function', { 
+      speakType: typeof speak,
+      isFunction: typeof speak === 'function'
     });
     
     await speak(speechMessage, { 
