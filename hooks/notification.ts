@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-const speakeasy = require('@arach/speakeasy');
+import speakeasy from '@arach/speakeasy';
 const speak = speakeasy.speak;
 
 // Debug logging

@@ -8,7 +8,9 @@
       "Bash(git push:*)",
       "Bash(npm install:*)",
       "Bash(npx tsx:*)",
-      "Bash(npm search:*)"
+      "Bash(npm search:*)",
+      "Bash(ls:*)",
+      "Bash(say:*)"
     ],
     "deny": []
   }
