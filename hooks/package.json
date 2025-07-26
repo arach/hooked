@@ -11,9 +11,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@arach/speakeasy": "^0.1.5",
     "@types/winston": "^2.4.4",
-    "winston": "^3.17.0",
-    "@arach/speakeasy": "^0.1.1"
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "tsx": "^4.0.0"

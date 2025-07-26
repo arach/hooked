@@ -10,7 +10,8 @@
       "Bash(npx tsx:*)",
       "Bash(npm search:*)",
       "Bash(ls:*)",
-      "Bash(say:*)"
+      "Bash(say:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

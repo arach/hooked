@@ -156,7 +156,7 @@ process.stdin.on('end', async () => {
     
     await speak(speechMessage, { 
       priority: 'high',
-      provider: 'elevenlabs'
+      provider: 'openai'
     });
     logger.info('Spoke notification message', { message: speechMessage });
   } catch (error) {
