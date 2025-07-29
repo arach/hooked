@@ -1,12 +1,27 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import speakeasy from '@arach/speakeasy';
-const speak = speakeasy.speak;
+import { SpeakEasy } from '@arach/speakeasy';
+
+// Create SpeakEasy instance with proper configuration
+const speakEasy = new SpeakEasy({
+  provider: 'groq',
+  apiKeys: {
+    groq: process.env.GROQ_API_KEY,
+    openai: process.env.OPENAI_API_KEY,
+    elevenlabs: process.env.ELEVENLABS_API_KEY
+  },
+  cache: {
+    enabled: true,
+    ttl: '7d',
+    maxSize: '100mb'
+  },
+  fallbackOrder: ['groq', 'openai', 'system']
+});
 
 // Debug logging
-console.log('Speakeasy object:', typeof speakeasy);
-console.log('Speak function:', typeof speak);
+console.log('SpeakEasy instance created:', typeof speakEasy);
+console.log('Available providers:', process.env.GROQ_API_KEY ? 'Groq' : 'System fallback');
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -149,14 +164,13 @@ process.stdin.on('end', async () => {
     });
     
     // Debug the speak function
-    logger.info('About to call speak function', { 
-      speakType: typeof speak,
-      isFunction: typeof speak === 'function'
+    logger.info('About to call SpeakEasy instance', { 
+      instanceType: typeof speakEasy,
+      hasGroqKey: !!process.env.GROQ_API_KEY
     });
     
-    await speak(speechMessage, { 
-      priority: 'high',
-      provider: 'openai'
+    await speakEasy.speak(speechMessage, { 
+      priority: 'high'
     });
     logger.info('Spoke notification message', { message: speechMessage });
   } catch (error) {
