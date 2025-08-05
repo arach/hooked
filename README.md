@@ -1,6 +1,6 @@
 # 🎯 Hooked
 
-A sophisticated notification system for Claude Code hooks that transforms technical notifications into intelligent, contextual alerts with logging, clipboard integration, and natural text-to-speech feedback.
+A simple notification handler for Claude Code hooks.
 
 ## ✨ Features
 
