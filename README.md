@@ -77,13 +77,7 @@ HOOKED_LOG_FILE=true
 
 ### SpeakEasy Setup
 
-Configure your TTS provider (run once):
-
-```bash
-npx @arach/speakeasy config
-```
-
-This creates `~/.config/speakeasy/settings.json` with your API keys and provider settings.
+Configure SpeakEasy with your TTS provider and API keys. See the [SpeakEasy documentation](https://github.com/arach/speakeasy) for setup instructions.
 
 ### Manual Hook Configuration
 
