@@ -1,152 +1,94 @@
 # 🎯 Hooked
 
-A simple notification handler for Claude Code hooks.
+A simple, focused notification handler for Claude Code hooks.
 
 ## ✨ Features
 
-- **🔊 Intelligent Speech Synthesis** - Converts technical notifications into natural speech using ElevenLabs
-- **📋 Clipboard Integration** - Automatically copies notification data to clipboard for easy access
-- **📝 Structured Logging** - Comprehensive logging with Winston to track all notifications
-- **🎨 Context-Aware Messages** - Extracts project names from paths for personalized notifications
-- **🔗 Seamless Integration** - Designed specifically for Claude Code's hook system
+- **🔊 Speech Notifications** - Converts Claude Code notifications into natural speech using ElevenLabs
+- **📝 Structured Logging** - Tracks all notifications with Winston to `~/logs/claude-hooks/notification.log`
+- **🎨 Smart Context** - Extracts project names from paths for personalized messages
+- **⚡️ Zero Config** - Automated deployment and setup
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) runtime
-- [speakeasy](https://github.com/arach/speakeasy) library for text-to-speech
-- ElevenLabs API access (for premium speech synthesis)
+- [Bun](https://bun.sh) - Fast JavaScript runtime
+- [SpeakEasy](https://github.com/arach/speakeasy) - Configured with TTS provider (ElevenLabs recommended)
 
 ### Installation
 
 ```bash
-# Clone the repository
+# Clone and install
 git clone git@github.com:arach/hooked.git
 cd hooked
-
-# Install dependencies
 bun install
 
-# Deploy to Claude Code hooks
+# Deploy to Claude Code
 bun run deploy
 ```
 
+That's it! The deployment script automatically:
+- Copies files to `~/.claude/hooks/`
+- Installs dependencies
+- Configures your `~/.claude/settings.json`
+- Sets up logging
+
 ### Usage
 
-The notification handler is typically called by Claude Code hooks, but can be tested manually:
+The notification handler runs automatically when Claude Code triggers hook events. Test it manually:
 
 ```bash
-# Basic usage
-echo '{"message": "Claude needs your permission", "transcript_path": "/path/to/project"}' | bun src/notification.ts permission-request
-
-# Run the test suite
+# Run test suite
 bun test
 
-# Monitor logs in real-time
+# Test specific notification
+echo '{"message": "Test message", "transcript_path": "/path/to/project"}' | bun src/notification.ts test
+
+# Monitor logs
 tail -f ~/logs/claude-hooks/notification.log
 ```
 
-## 🏗️ Architecture
-
-### Core Components
+## 🏗️ Project Structure
 
 ```
 hooked/
 ├── src/
-│   ├── notification.ts  # Main notification handler
-│   └── test.ts          # Test and validation system
-├── deploy.ts            # Deployment script
-├── package.json         # Dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── .env.example         # Environment variables template
+│   ├── notification.ts      # Main hook handler
+│   └── test.ts              # Test suite
+├── deploy.ts                # One-command deployment
+├── package.json             # Dependencies
+├── tsconfig.json            # TypeScript config (strict mode)
+└── .env.example             # Environment variables
 ```
 
-### Notification Flow
+**Simple and focused** - Just the essentials for Claude Code hook notifications.
 
-1. **Input Processing** - Reads notification type from CLI args and JSON payload from stdin
-2. **Data Structuring** - Parses and organizes notification data with timestamps
-3. **Project Context** - Extracts project names from transcript paths for context
-4. **Multi-Channel Output**:
-   - 🔊 **Speech**: Natural language TTS via ElevenLabs
-   - 📋 **Clipboard**: Formatted JSON for easy access
-   - 📝 **Logs**: Structured logging to `~/logs/claude-hooks/notification.log`
-
-### Message Intelligence
-
-The system includes smart message processing:
-
-- **Project Context**: Extracts project names from file paths
-- **Natural Language**: Converts technical messages to conversational speech
-- **Contextual Responses**: Tailors speech based on notification type
-- **Error Handling**: Graceful fallbacks for parsing and processing errors
-
-## 📋 Claude Code Hook Coverage
-
-Hooked currently implements handlers for a subset of Claude Code's hook events. Below is the full list of available hooks and implementation status:
-
-### Implemented ✅
-
-| Hook Event | Status | Description |
-|-----------|--------|-------------|
-| **Notification** | ✅ **Fully Supported** | Processes all notification types with speech, clipboard, and logging |
-| **Stop** | ⚠️ **Partial** | Uses same handler as Notification |
-
-### Available But Not Yet Implemented
-
-| Hook Event | Use Case | Priority |
-|-----------|----------|----------|
-| **PreToolUse** | Validate/modify tool calls before execution | High |
-| **PostToolUse** | React to tool completions, log tool usage | High |
-| **UserPromptSubmit** | Add context or validate user prompts | Medium |
-| **SubagentStop** | Handle subagent completion | Medium |
-| **SessionStart** | Load context at session start | Medium |
-| **PreCompact** | React before context compaction | Low |
-| **SessionEnd** | Cleanup or logging at session end | Low |
-
-### Roadmap
-
-**Next Steps:**
-1. Refactor handler to support multiple hook types
-2. Add PreToolUse support for permission automation
-3. Add PostToolUse for comprehensive tool logging
-4. Add SessionStart for environment setup notifications
-
-**Contributing:**
-Contributions welcome! If you'd like to add support for additional hook types, see the [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks.md) for payload schemas and behavior.
-
-## 🎛️ Configuration
-
-### Automatic Configuration
-
-**No manual configuration required!** The deploy script automatically:
-
-- ✅ Detects your home directory (uses Node.js `homedir()`)
-- ✅ Finds `~/.claude/hooks/` directory (creates if needed)
-- ✅ Locates `~/.claude/settings.json` (creates if needed)
-- ✅ Works on macOS, Linux, and Windows
-
-Simply run `npx tsx deploy.ts` and everything is configured automatically.
+## 🔧 Configuration
 
 ### Environment Variables
 
-The system uses default configurations but can be customized:
+Create a `.env` file (optional - defaults work out of the box):
 
-- Log directory: `~/logs/claude-hooks/`
-- Speech provider: ElevenLabs (configurable in `notification.ts`)
-- Log level: `info` (configurable in Winston setup)
+```bash
+# Enable file logging (enabled by default during deployment)
+HOOKED_LOG_FILE=true
+```
 
-### Claude Code Integration
+### SpeakEasy Setup
 
-The deployment script automatically configures Claude Code hooks in your `~/.claude/settings.json`. It safely preserves any existing hooks and settings while adding the notification system.
+Configure your TTS provider (run once):
 
-**Safe Settings Handling:**
-- ✅ Preserves existing hooks and settings
-- ✅ Only updates the `Notification` hook configuration
-- ✅ Checks if configuration is already up-to-date before writing
-- ✅ Creates backup-friendly JSON formatting
+```bash
+npx @arach/speakeasy config
+```
 
-**Manual Configuration (if needed):**
+This creates `~/.config/speakeasy/settings.json` with your API keys and provider settings.
+
+### Manual Hook Configuration
+
+The deploy script handles this automatically, but if needed:
+
 ```json
 {
   "hooks": {
@@ -165,68 +107,97 @@ The deployment script automatically configures Claude Code hooks in your `~/.cla
 }
 ```
 
+## 🎯 How It Works
+
+### Notification Flow
+
+1. **Claude Code triggers hook** → Sends JSON payload via stdin
+2. **Parse & extract context** → Reads notification type, message, and project path
+3. **Multi-channel output**:
+   - 🔊 **Speak** - "In hooked, Claude needs your permission"
+   - 📝 **Log** - Structured JSON to `~/logs/claude-hooks/notification.log`
+   - 🧠 **Process** - Natural language transformation for TTS
+
+### Message Intelligence
+
+The system transforms technical notifications into conversational speech:
+
+```javascript
+// Input
+{ "message": "Claude Code is waiting for your input", "transcript_path": ".../-hooked/..." }
+
+// Output
+🔊 "In hooked, Claude is waiting for you"
+```
+
+## 📋 Supported Hooks
+
+| Hook Event | Status | Description |
+|-----------|--------|-------------|
+| **Notification** | ✅ Fully Supported | All Claude Code notification types |
+| **Stop** | ✅ Supported | Task completion notifications |
+
+### Future Hooks (Roadmap)
+
+- **PreToolUse** - Validate tool calls before execution
+- **PostToolUse** - Log tool usage and results
+- **UserPromptSubmit** - Add context to prompts
+- **SessionStart** - Setup notifications
+
+Want to contribute? Check the [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks.md) for payload schemas.
+
 ## 🧪 Testing
 
-### Manual Testing
-
 ```bash
-# Test with sample data
+# Run the test suite
 bun test
 
-# Test specific notification types
+# Test with custom payload
 echo '{"message": "Build completed", "transcript_path": "/Users/dev/my-project"}' | bun src/notification.ts build-complete
-```
 
-### Log Analysis
-
-```bash
-# View recent notifications
+# Check logs
 tail -20 ~/logs/claude-hooks/notification.log
 
-# Filter by log level
-tail -f ~/logs/claude-hooks/notification.log | grep -E "(INFO|ERROR|WARN)"
-
-# Search for specific project notifications
-grep "my-project" ~/logs/claude-hooks/notification.log
+# Filter by level
+tail -f ~/logs/claude-hooks/notification.log | grep ERROR
 ```
 
-## 🔧 Development
-
-### Project Structure
-
-- **TypeScript**: Modern ES modules with type safety
-- **Winston**: Structured logging with file and console transports
-- **Speakeasy**: Text-to-speech with ElevenLabs integration
-- **Node.js**: Cross-platform compatibility
-
-### Common Development Tasks
+## 🛠️ Development
 
 ```bash
 # Install dependencies
 bun install
 
-# Run in development mode
+# Run notification handler directly
 bun src/notification.ts test-message
 
-# Monitor logs during development
+# Watch logs
 tail -f ~/logs/claude-hooks/notification.log
 
-# Test notification pipeline
+# Run tests
 bun test
 ```
 
-## 📊 Logging
+### Tech Stack
 
-All notifications are logged to `~/logs/claude-hooks/notification.log` with structured data:
+- **Runtime**: Bun (fast, modern JavaScript runtime)
+- **Language**: TypeScript with strict mode enabled
+- **Logging**: Winston with file rotation and structured JSON
+- **TTS**: SpeakEasy library with ElevenLabs provider
+- **Deployment**: Automated script with safe settings merging
+
+## 📊 Log Format
+
+All notifications are logged with structured data:
 
 ```json
 {
   "timestamp": "2024-01-15T10:30:45.123Z",
   "level": "INFO",
-  "message": "Notification processed successfully",
-  "type": "permission-request",
-  "project": "my-awesome-project",
-  "speechMessage": "In my awesome project, Claude needs your permission"
+  "message": "Notification script started",
+  "notificationType": "permission-request",
+  "projectName": "my-project",
+  "speechMessage": "In my project, Claude needs your permission"
 }
 ```
 
@@ -234,21 +205,22 @@ All notifications are logged to `~/logs/claude-hooks/notification.log` with stru
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m '✨ Add amazing feature'`)
+3. Commit with gitmoji (`git commit -m '✨ Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the ISC License - see the package.json file for details.
+ISC License - See package.json for details.
 
-## 🔗 Related
+## 🔗 Resources
 
-- [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks.md)
-- [SpeakEasy](https://github.com/arach/speakeasy) - Unified text-to-speech library powering the speech functionality
-- [ElevenLabs API](https://elevenlabs.io/)
+- [Claude Code Documentation](https://code.claude.com/)
+- [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks.md)
+- [SpeakEasy Library](https://github.com/arach/speakeasy)
+- [Bun Runtime](https://bun.sh)
 - [Winston Logging](https://github.com/winstonjs/winston)
 
 ---
 
-*Built with ❤️ for enhanced Claude Code workflows*
+**Built with ❤️ for enhanced Claude Code workflows**

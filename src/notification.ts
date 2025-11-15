@@ -5,21 +5,21 @@ import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import winston from 'winston';
 import { SpeakEasy } from '@arach/speakeasy';
-import {
-  NotificationPayload,
-  buildSpeechMessage,
-  deriveProjectName,
-  extractErrorMessage,
-  parseNotificationPayload,
-  readStdin
-} from './notification-utils';
 
+// Types
 interface NoOpLogger {
   info: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
 }
 
 type Logger = winston.Logger | NoOpLogger;
+
+interface NotificationPayload {
+  hook_event_name?: string;
+  message?: string;
+  transcript_path?: string;
+  [key: string]: unknown;
+}
 
 const enableFileLogging = process.env.HOOKED_LOG_FILE === 'true';
 const logger: Logger = enableFileLogging ? createLogger() : createNoOpLogger();
@@ -121,6 +121,64 @@ function createNoOpLogger(): NoOpLogger {
     info: () => {},
     error: () => {}
   };
+}
+
+// Utility functions
+function parseNotificationPayload(rawPayload: string): { payload: NotificationPayload | null; wasJson: boolean } {
+  try {
+    const jsonPayload = JSON.parse(rawPayload);
+
+    if (typeof jsonPayload !== 'object' || jsonPayload === null) {
+      return { payload: null, wasJson: true };
+    }
+
+    return { payload: jsonPayload as NotificationPayload, wasJson: true };
+  } catch {
+    return { payload: null, wasJson: false };
+  }
+}
+
+function deriveProjectName(transcriptPath?: string): string {
+  if (!transcriptPath) {
+    return 'unknown project';
+  }
+
+  const dashedMatch = transcriptPath.match(/projects\/[^/]*-([^/]+)\//);
+  if (dashedMatch) {
+    return dashedMatch[1].replace(/-/g, ' ');
+  }
+
+  const plainMatch = transcriptPath.match(/projects\/([^/]+)\//);
+  if (plainMatch) {
+    return plainMatch[1].replace(/-/g, ' ').replace(/\./g, ' dot ');
+  }
+
+  return 'unknown project';
+}
+
+function buildSpeechMessage(projectName: string, hookEventName?: string, message?: string): string {
+  if (hookEventName === 'Stop') {
+    return `In ${projectName}, Claude completed a task`;
+  }
+
+  const cleanMessage = (message ?? 'Notification received').replace(/Claude Code/g, 'Claude');
+  return `In ${projectName}, ${cleanMessage}`;
+}
+
+function readStdin(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on('end', () => resolve(data));
+    process.stdin.on('error', reject);
+  });
+}
+
+function extractErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 // Handle process errors

@@ -30,7 +30,8 @@
       "Bash(xargs kill:*)",
       "WebFetch(domain:code.claude.com)",
       "Bash(HOOKED_LOG_FILE=true npx tsx:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(HOOKED_LOG_FILE=true bun src/notification.ts test:*)"
     ],
     "deny": []
   }
