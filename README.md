@@ -14,9 +14,8 @@ A simple notification handler for Claude Code hooks.
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- npm or pnpm
-- [speakeasy](https://github.com/speakeasy-js/speakeasy) library for text-to-speech
+- [Bun](https://bun.sh) runtime
+- [speakeasy](https://github.com/arach/speakeasy) library for text-to-speech
 - ElevenLabs API access (for premium speech synthesis)
 
 ### Installation
@@ -26,8 +25,11 @@ A simple notification handler for Claude Code hooks.
 git clone git@github.com:arach/hooked.git
 cd hooked
 
+# Install dependencies
+bun install
+
 # Deploy to Claude Code hooks
-npx tsx deploy.ts
+bun run deploy
 ```
 
 ### Usage
@@ -36,10 +38,10 @@ The notification handler is typically called by Claude Code hooks, but can be te
 
 ```bash
 # Basic usage
-echo '{"message": "Claude needs your permission", "transcript_path": "/path/to/project"}' | npx tsx notification.ts permission-request
+echo '{"message": "Claude needs your permission", "transcript_path": "/path/to/project"}' | bun src/notification.ts permission-request
 
 # Run the test suite
-npx tsx test-notification.ts
+bun test
 
 # Monitor logs in real-time
 tail -f ~/logs/claude-hooks/notification.log
@@ -50,11 +52,14 @@ tail -f ~/logs/claude-hooks/notification.log
 ### Core Components
 
 ```
-hooks/
-├── notification.ts      # Main notification handler
-├── test-notification.ts # Test and validation system
-├── package.json        # Dependencies and scripts
-└── .gitignore         # Git ignore rules
+hooked/
+├── src/
+│   ├── notification.ts  # Main notification handler
+│   └── test.ts          # Test and validation system
+├── deploy.ts            # Deployment script
+├── package.json         # Dependencies and scripts
+├── tsconfig.json        # TypeScript configuration
+└── .env.example         # Environment variables template
 ```
 
 ### Notification Flow
@@ -76,7 +81,52 @@ The system includes smart message processing:
 - **Contextual Responses**: Tailors speech based on notification type
 - **Error Handling**: Graceful fallbacks for parsing and processing errors
 
+## 📋 Claude Code Hook Coverage
+
+Hooked currently implements handlers for a subset of Claude Code's hook events. Below is the full list of available hooks and implementation status:
+
+### Implemented ✅
+
+| Hook Event | Status | Description |
+|-----------|--------|-------------|
+| **Notification** | ✅ **Fully Supported** | Processes all notification types with speech, clipboard, and logging |
+| **Stop** | ⚠️ **Partial** | Uses same handler as Notification |
+
+### Available But Not Yet Implemented
+
+| Hook Event | Use Case | Priority |
+|-----------|----------|----------|
+| **PreToolUse** | Validate/modify tool calls before execution | High |
+| **PostToolUse** | React to tool completions, log tool usage | High |
+| **UserPromptSubmit** | Add context or validate user prompts | Medium |
+| **SubagentStop** | Handle subagent completion | Medium |
+| **SessionStart** | Load context at session start | Medium |
+| **PreCompact** | React before context compaction | Low |
+| **SessionEnd** | Cleanup or logging at session end | Low |
+
+### Roadmap
+
+**Next Steps:**
+1. Refactor handler to support multiple hook types
+2. Add PreToolUse support for permission automation
+3. Add PostToolUse for comprehensive tool logging
+4. Add SessionStart for environment setup notifications
+
+**Contributing:**
+Contributions welcome! If you'd like to add support for additional hook types, see the [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks.md) for payload schemas and behavior.
+
 ## 🎛️ Configuration
+
+### Automatic Configuration
+
+**No manual configuration required!** The deploy script automatically:
+
+- ✅ Detects your home directory (uses Node.js `homedir()`)
+- ✅ Finds `~/.claude/hooks/` directory (creates if needed)
+- ✅ Locates `~/.claude/settings.json` (creates if needed)
+- ✅ Works on macOS, Linux, and Windows
+
+Simply run `npx tsx deploy.ts` and everything is configured automatically.
 
 ### Environment Variables
 
@@ -105,8 +155,8 @@ The deployment script automatically configures Claude Code hooks in your `~/.cla
         "matcher": "",
         "hooks": [
           {
-            "type": "command", 
-            "command": "npx tsx ~/.claude/hooks/notification.ts"
+            "type": "command",
+            "command": "HOOKED_LOG_FILE=true bun ~/.claude/hooks/notification.ts"
           }
         ]
       }
@@ -121,10 +171,10 @@ The deployment script automatically configures Claude Code hooks in your `~/.cla
 
 ```bash
 # Test with sample data
-npx tsx test-notification.ts
+bun test
 
 # Test specific notification types
-echo '{"message": "Build completed", "transcript_path": "/Users/dev/my-project"}' | npx tsx notification.ts build-complete
+echo '{"message": "Build completed", "transcript_path": "/Users/dev/my-project"}' | bun src/notification.ts build-complete
 ```
 
 ### Log Analysis
@@ -153,16 +203,16 @@ grep "my-project" ~/logs/claude-hooks/notification.log
 
 ```bash
 # Install dependencies
-cd hooks && npm install
+bun install
 
 # Run in development mode
-npx tsx notification.ts test-message
+bun src/notification.ts test-message
 
 # Monitor logs during development
 tail -f ~/logs/claude-hooks/notification.log
 
 # Test notification pipeline
-npx tsx test-notification.ts
+bun test
 ```
 
 ## 📊 Logging
@@ -194,10 +244,10 @@ This project is licensed under the ISC License - see the package.json file for d
 
 ## 🔗 Related
 
-- [Claude Code Documentation](https://docs.anthropic.com/claude/docs)
+- [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks.md)
+- [SpeakEasy](https://github.com/arach/speakeasy) - Unified text-to-speech library powering the speech functionality
 - [ElevenLabs API](https://elevenlabs.io/)
 - [Winston Logging](https://github.com/winstonjs/winston)
-- [Speakeasy TTS](https://github.com/speakeasy-js/speakeasy)
 
 ---
 

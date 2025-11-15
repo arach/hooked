@@ -11,7 +11,26 @@
       "Bash(npm search:*)",
       "Bash(ls:*)",
       "Bash(say:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(claude --version)",
+      "Bash(claude update)",
+      "Bash(timeout 10 npm start)",
+      "Bash(curl:*)",
+      "Bash(bun:*)",
+      "Bash(timeout:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(cat:*)",
+      "Bash(claude config get verbose)",
+      "Bash(claude config set:*)",
+      "Bash(pnpm create:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(pnpm dev)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "WebFetch(domain:code.claude.com)",
+      "Bash(HOOKED_LOG_FILE=true npx tsx:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }
