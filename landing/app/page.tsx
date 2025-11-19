@@ -47,9 +47,18 @@ process.stdin.on('data', async (chunk) => {
       <main className="max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-6xl font-light tracking-tight text-neutral-900 mb-4">
-            Hooked
-          </h1>
+          <div className="flex flex-col items-center mb-6">
+            <div className="bg-white rounded-2xl p-4 mb-4">
+              <img
+                src="/u6753973454_futuristic_curved_line_logo_single_thin_monoline__5e4c8a1f-f519-4809-9f1d-8ddf2a531be8_1.png"
+                alt="Hooked Logo"
+                className="w-20 h-20 object-contain"
+              />
+            </div>
+            <h1 className="text-6xl font-semibold tracking-tight text-neutral-900 font-[family-name:var(--font-kode-mono)]">
+              hooked
+            </h1>
+          </div>
           <p className="text-xl font-light text-neutral-500">
             Know when Claude needs you. Know when Claude is done.
           </p>

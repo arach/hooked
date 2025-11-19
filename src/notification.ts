@@ -83,6 +83,9 @@ async function speakNotification(parsedPayload: NotificationPayload | null) {
   });
 
   logger.info(`SpeakEasy spoke: "${speechMessage}"`);
+
+  // Print to console for hook feedback
+  console.log(`🔊 ${speechMessage}`);
 }
 
 function createLogger(): winston.Logger {

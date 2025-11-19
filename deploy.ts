@@ -10,6 +10,7 @@ const hooksDir = join(homedir(), '.claude', 'hooks');
 const settingsFile = join(homedir(), '.claude', 'settings.json');
 const sourceDir = join(__dirname, 'src');
 const sourceFiles = ['notification.ts'];
+const runnerScript = 'run-hook.sh';
 
 console.log('🚀 Deploying hooked notification system...');
 
@@ -31,6 +32,17 @@ sourceFiles.forEach(file => {
     console.warn(`⚠️  Warning: ${file} not found in src directory`);
   }
 });
+
+// Copy runner script
+const runnerSourcePath = join(__dirname, runnerScript);
+const runnerTargetPath = join(hooksDir, runnerScript);
+if (existsSync(runnerSourcePath)) {
+  copyFileSync(runnerSourcePath, runnerTargetPath);
+  execSync(`chmod +x ${runnerTargetPath}`);
+  console.log(`📄 Copied ${runnerScript} to ~/.claude/hooks/`);
+} else {
+  console.warn(`⚠️  Warning: ${runnerScript} not found`);
+}
 
 // Copy package.json and install dependencies in hooks directory
 const rootPackageJson = join(__dirname, 'package.json');
@@ -87,7 +99,8 @@ if (!settings.hooks) {
 }
 
 // Create our hook configuration with logging enabled
-const hookCommand = `HOOKED_LOG_FILE=true bun ${join(hooksDir, 'notification.ts')}`;
+// Use wrapper script for clean command
+const hookCommand = join(hooksDir, runnerScript);
 const hookConfig: HookConfig[] = [
   {
     matcher: "",
