@@ -50,7 +50,7 @@ process.stdin.on('data', async (chunk) => {
           <div className="flex flex-col items-center mb-6">
             <div className="bg-white rounded-2xl p-4 mb-4">
               <img
-                src="/u6753973454_futuristic_curved_line_logo_single_thin_monoline__5e4c8a1f-f519-4809-9f1d-8ddf2a531be8_1.png"
+                src="/hooked-logo.png"
                 alt="Hooked Logo"
                 className="w-20 h-20 object-contain"
               />
