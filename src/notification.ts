@@ -147,12 +147,12 @@ function deriveProjectName(transcriptPath?: string): string {
   }
 
   const dashedMatch = transcriptPath.match(/projects\/[^/]*-([^/]+)\//);
-  if (dashedMatch) {
+  if (dashedMatch?.[1]) {
     return dashedMatch[1].replace(/-/g, ' ');
   }
 
   const plainMatch = transcriptPath.match(/projects\/([^/]+)\//);
-  if (plainMatch) {
+  if (plainMatch?.[1]) {
     return plainMatch[1].replace(/-/g, ' ').replace(/\./g, ' dot ');
   }
 

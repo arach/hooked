@@ -30,6 +30,8 @@
     "isolatedModules": true,
 
     // Output
+    "outDir": "./dist",
+    "declaration": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },

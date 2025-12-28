@@ -1,23 +1,44 @@
 {
   "name": "hooked",
   "version": "1.0.0",
-  "description": "Claude Code hooks notification system",
+  "description": "TypeScript toolkit for Claude Code hooks - smart stop hooks, logging, and notifications",
   "type": "module",
-  "main": "src/notification.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "hooked": "./dist/cli/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./stop": {
+      "types": "./dist/stop/index.d.ts",
+      "default": "./dist/stop/index.js"
+    }
+  },
   "scripts": {
+    "build": "tsc",
+    "hooked:init": "npx tsx src/cli/index.ts",
     "deploy": "bun run deploy.ts",
     "test": "bun src/test.ts",
     "test:notification": "bun src/test.ts"
   },
   "keywords": [
     "claude",
+    "claude-code",
     "hooks",
-    "notifications"
+    "stop-hooks",
+    "notifications",
+    "typescript"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@arach/speakeasy": "^0.1.6",
+    "@clack/prompts": "^0.11.0",
+    "tsx": "^4.19.0",
     "winston": "^3.17.0",
     "zod": "^3.23.8"
   },
