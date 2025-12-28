@@ -12,23 +12,23 @@ export default function Home() {
   const [copiedCode, setCopiedCode] = useState(false)
 
   const installCommand = `git clone https://github.com/arach/hooked.git
-cd hooked
-npx tsx deploy.ts`
+cd hooked && pnpm install
+pnpm run hooked:init`
 
-  const hookExample = `// notification.ts - The hook handler
-import { SpeakEasy } from '@arach/speakeasy';
+  const hookExample = `// Stop hook with contextual continuation
+import { createStopHook, maxIterations, continueUntil } from 'hooked/stop'
 
-// Read notification payload from stdin
-process.stdin.on('data', async (chunk) => {
-  const payload = JSON.parse(chunk.toString());
+const hook = createStopHook([
+  maxIterations(3),    // Safety limit
+  continueUntil(),     // Toggle with /hooked command
+])
 
-  // Extract message and project context
-  const message = payload.message;
-  const projectName = extractProject(payload.transcript_path);
+hook()
 
-  // Speak the notification out loud
-  await speakEasy.speak(\`In \${projectName}, \${message}\`);
-});`
+// Toggle continuation in Claude Code:
+// /hooked continuation "fix the login bug"
+// /hooked continuation --check "pnpm build"
+// /hooked continuation OFF`
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(installCommand)
@@ -60,14 +60,14 @@ process.stdin.on('data', async (chunk) => {
             </h1>
           </div>
           <p className="text-xl font-light text-neutral-500">
-            Know when Claude needs you. Know when Claude is done.
+            Know when Claude needs you. Keep Claude working until done.
           </p>
         </div>
 
         {/* Overview */}
         <div className="bg-white rounded-lg border border-neutral-200 p-8 mb-8 shadow-sm">
           <p className="text-base text-neutral-600 leading-relaxed mb-6 font-light">
-            Speaks Claude Code notifications out loud using{" "}
+            A TypeScript toolkit for Claude Code hooks. Voice notifications via{" "}
             <a
               href="https://github.com/arach/speakeasy"
               target="_blank"
@@ -75,17 +75,17 @@ process.stdin.on('data', async (chunk) => {
               className="text-neutral-700 hover:text-neutral-900 underline decoration-neutral-300 hover:decoration-neutral-500 transition-colors"
             >
               SpeakEasy
-            </a>. Get audio alerts when Claude needs your attention.
+            </a>{" "}and smart stop hooks that keep Claude working until your task is done.
           </p>
 
           <div className="grid md:grid-cols-2 gap-6 mb-6">
-            {/* What it does */}
+            {/* Features */}
             <div>
-              <h3 className="text-sm font-medium text-neutral-800 mb-3">Automatic Setup</h3>
+              <h3 className="text-sm font-medium text-neutral-800 mb-3">Features</h3>
               <div className="space-y-2 text-[13px] text-neutral-600 font-light">
-                <div>→ Finds <span className="font-mono text-neutral-700">~/.claude/hooks/</span></div>
-                <div>→ Installs dependencies</div>
-                <div>→ Updates settings.json safely</div>
+                <div>→ Voice notifications when Claude needs you</div>
+                <div>→ Contextual continuation with <span className="font-mono text-neutral-700">/hooked</span></div>
+                <div>→ Composable evaluators for stop hooks</div>
               </div>
             </div>
 
@@ -98,8 +98,8 @@ process.stdin.on('data', async (chunk) => {
                   <span>Notification</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-yellow-600 text-xs">◐</span>
-                  <span>Stop (partial)</span>
+                  <span className="text-green-600 text-xs">✓</span>
+                  <span>Stop</span>
                 </div>
                 <div className="text-neutral-500 text-xs mt-2">
                   7 more hooks available in{" "}
@@ -120,7 +120,7 @@ process.stdin.on('data', async (chunk) => {
         {/* Code Example */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-light text-neutral-700">What a hook looks like</h2>
+            <h2 className="text-lg font-light text-neutral-700">Stop hook with continuation</h2>
             <button
               onClick={copyCode}
               className="text-neutral-400 hover:text-neutral-600 transition-colors text-sm flex items-center gap-2"
@@ -175,8 +175,8 @@ process.stdin.on('data', async (chunk) => {
           </div>
           <code className="text-[15px] text-neutral-200 font-mono tracking-tight block space-y-2">
             <div>git clone https://github.com/arach/hooked.git</div>
-            <div>cd hooked</div>
-            <div>npx tsx deploy.ts</div>
+            <div>cd hooked && pnpm install</div>
+            <div>pnpm run hooked:init</div>
           </code>
         </div>
 
