@@ -185,14 +185,12 @@ pnpm run hooked:init`
             >
               <Github className="w-5 h-5" />
             </a>
-            <a
-              href="https://docs.anthropic.com/en/docs/claude-code/hooks"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/docs"
               className={`text-sm ${theme.textMuted} hover:${theme.text} transition-colors`}
             >
               Docs
-            </a>
+            </Link>
             <button
               onClick={() => setIsDark(!isDark)}
               className={`p-2 rounded-lg transition-all duration-200 ${
@@ -237,7 +235,7 @@ pnpm run hooked:init`
               {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 opacity-50" />}
             </button>
             <Link
-              href="https://github.com/arach/hooked"
+              href="/docs"
               className={`px-4 py-2.5 rounded-lg font-medium text-sm border transition-colors ${
                 isDark
                   ? "border-white/20 text-white/80 hover:bg-white/5 hover:text-white"
