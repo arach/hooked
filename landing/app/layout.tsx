@@ -19,8 +19,31 @@ const kodeMono = Kode_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hooked - Intelligent Notifications for Claude Code",
-  description: "A streamlined notification handler that transforms Claude Code events into intelligent speech, clipboard actions, and structured logs.",
+  title: "Hooked - Hooks helper for Claude Code",
+  description: "Voice alerts when Claude needs you. Continuation hooks that keep it working until done.",
+  metadataBase: new URL("https://hooked.arach.dev"),
+  openGraph: {
+    title: "Hooked - Hooks helper for Claude Code",
+    description: "Voice alerts when Claude needs you. Continuation hooks that keep it working until done.",
+    url: "https://hooked.arach.dev",
+    siteName: "Hooked",
+    type: "website",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Hooked - Hooks helper for Claude Code",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Hooked - Hooks helper for Claude Code",
+    description: "Voice alerts when Claude needs you. Continuation hooks that keep it working until done.",
+    creator: "@arach",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
