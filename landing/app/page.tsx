@@ -1,43 +1,117 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Github, Copy, Check, Play, Pause, ArrowRight, Sun, Moon, ChevronDown } from "lucide-react"
+import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { motion, AnimatePresence } from "framer-motion"
 import { Tweet } from "react-tweet"
 
-const presetDetails = {
-  test: {
-    command: "hooked test",
-    addCommand: "/hooked test `pnpm test`",
-    check: "pnpm test",
-    prompt: "Tests failed. Read the errors, fix the code, and run tests again.",
-  },
-  build: {
-    command: "hooked build",
-    addCommand: "/hooked build `pnpm build`",
-    check: "pnpm build",
-    prompt: "Build failed. Fix the errors and rebuild.",
-  },
-  typecheck: {
-    command: "hooked typecheck",
-    addCommand: "/hooked typecheck `pnpm typecheck`",
-    check: "pnpm typecheck",
-    prompt: "Type errors found. Fix them and run typecheck again.",
-  },
-  manual: {
-    command: "hooked manual",
-    addCommand: "/hooked manual",
-    check: null,
-    prompt: "Keep going. Do not stop until I tell you to.",
-  },
+// Navbar
+function Navbar() {
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/70 backdrop-blur-md">
+      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 group cursor-pointer">
+          <div className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center">
+            <img src="/hooked-logo.png" alt="Hooked" className="w-5 h-5 object-contain" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight">Hooked</span>
+        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/docs" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+            Docs
+          </Link>
+          <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+            Claude Hooks
+          </a>
+          <div className="h-3 w-px bg-white/10" />
+          <a href="https://github.com/arach/hooked" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors">
+            <Github size={16} />
+          </a>
+        </div>
+      </div>
+    </nav>
+  )
 }
 
-function AudioDemo({ isDark }: { isDark: boolean }) {
+// Hero
+function Hero() {
+  const [copied, setCopied] = useState(false)
+  const command = "git clone https://github.com/arach/hooked && cd hooked && pnpm install && pnpm run hooked:init"
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(command)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <section className="pt-28 pb-20 px-6 relative flex flex-col items-center border-b border-white/5">
+      <div className="max-w-3xl mx-auto text-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-[10px] font-bold text-sky-400 mb-6 uppercase tracking-wider"
+        >
+          Hooks Helper
+        </motion.div>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl md:text-5xl font-bold tracking-tight mb-6 leading-tight"
+        >
+          Manage Claude Code hooks<br className="hidden md:block" />
+          without the boilerplate.
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="text-base text-zinc-400 mb-10 max-w-xl mx-auto leading-relaxed"
+        >
+          A tiny utility for Anthropic's Claude Code CLI. Add voice alerts,
+          build-check loops, and custom continuation triggers.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-3"
+        >
+          <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 group hover:border-zinc-700 transition-colors">
+            <code className="text-sm font-[family-name:var(--font-geist-mono)] text-zinc-300 mr-4">
+              git clone https://github.com/arach/hooked
+            </code>
+            <button
+              onClick={handleCopy}
+              className="p-1 text-zinc-500 hover:text-white transition-colors border-l border-zinc-800 pl-3"
+              title="Copy to clipboard"
+            >
+              {copied ? <Check size={14} className="text-sky-500" /> : <Copy size={14} />}
+            </button>
+          </div>
+          <Link
+            href="/docs"
+            className="px-5 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-zinc-200 transition-colors"
+          >
+            Read Docs
+          </Link>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+// Voice Alert Demo
+function VoiceAlertDemo() {
   const [isPlaying, setIsPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
 
-  const togglePlay = () => {
+  const handlePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause()
@@ -48,478 +122,262 @@ function AudioDemo({ isDark }: { isDark: boolean }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <audio
-        ref={audioRef}
-        src="/audio/permission.mp3"
-        onEnded={() => setIsPlaying(false)}
-        onPause={() => setIsPlaying(false)}
-        onPlay={() => setIsPlaying(true)}
-      />
-      <button
-        onClick={togglePlay}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
-          isDark
-            ? isPlaying
-              ? "bg-white text-black"
-              : "bg-white/10 text-white/90 hover:bg-white/20 border border-white/10"
-            : isPlaying
-              ? "bg-neutral-900 text-white"
-              : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200"
-        }`}
-      >
-        {isPlaying ? (
-          <>
-            <Pause className="w-3 h-3" />
-            <span>Playing...</span>
-          </>
-        ) : (
-          <>
-            <Play className="w-3 h-3" />
-            <span>Hear it</span>
-          </>
-        )}
-      </button>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">Listen, don't watch.</h2>
+        <p className="text-zinc-400 text-sm leading-relaxed">
+          Hooked uses <a href="https://github.com/arach/speakeasy" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300">SpeakEasy</a> to announce when Claude needs your attention.
+          Stop checking your terminal—you'll hear it.
+        </p>
+        <div className="flex items-center gap-4 pt-2">
+          <audio
+            ref={audioRef}
+            src="/audio/permission.mp3"
+            onEnded={() => setIsPlaying(false)}
+            onPause={() => setIsPlaying(false)}
+            onPlay={() => setIsPlaying(true)}
+          />
+          <button
+            onClick={handlePlay}
+            className="px-4 py-2 border border-zinc-800 rounded-lg bg-zinc-900/50 hover:bg-zinc-900 text-xs font-semibold flex items-center gap-2 transition-all"
+          >
+            {isPlaying ? <Pause size={12} /> : <Play size={12} fill="currentColor" />}
+            {isPlaying ? "Playing..." : "Preview Voice"}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-6 font-[family-name:var(--font-geist-mono)] text-xs">
+        <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
+          <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Notification Hook</span>
+          <span className="text-sky-400">~/.claude/hooks/</span>
+        </div>
+        <div className="text-zinc-400 space-y-2">
+          <p className="text-zinc-600">// When Claude needs permission</p>
+          <p><span className="text-sky-400">onPrompt</span>: () =&gt; speak(<span className="text-zinc-200">"Claude needs your permission"</span>)</p>
+          <p className="pt-2 text-zinc-600">// When Claude is waiting</p>
+          <p><span className="text-sky-400">onWait</span>: () =&gt; speak(<span className="text-zinc-200">"Claude is waiting for you"</span>)</p>
+        </div>
+      </div>
     </div>
   )
 }
 
-function PresetButton({
-  preset,
-  isActive,
-  onClick,
-  theme
-}: {
-  preset: keyof typeof presetDetails
-  isActive: boolean
-  onClick: () => void
-  theme: Record<string, string>
-}) {
-  const data = presetDetails[preset]
+// Continuation Demo
+function ContinuationDemo() {
+  const [activeTab, setActiveTab] = useState<"hooked" | "vanilla">("hooked")
 
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left rounded-lg px-3 py-2 border transition-all duration-200 ${theme.codeBg} ${
-        isActive
-          ? "border-sky-500/50 ring-1 ring-sky-500/30"
-          : `${theme.codeBorder} hover:border-sky-500/30`
-      }`}
-    >
-      <code className={`text-xs font-[family-name:var(--font-geist-mono)] ${isActive ? "text-sky-400" : "text-sky-500"}`}>
-        {data.command}
-      </code>
-    </button>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="order-2 md:order-1 bg-black border border-zinc-800 rounded-lg overflow-hidden text-xs">
+        <div className="flex gap-2 p-2 bg-zinc-900 border-b border-zinc-800">
+          <button
+            onClick={() => setActiveTab("hooked")}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              activeTab === "hooked" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-400"
+            }`}
+          >
+            hooked
+          </button>
+          <button
+            onClick={() => setActiveTab("vanilla")}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              activeTab === "vanilla" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-400"
+            }`}
+          >
+            vanilla
+          </button>
+        </div>
+        <div className="p-6 font-[family-name:var(--font-geist-mono)] min-h-[160px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className={activeTab === "hooked" ? "text-sky-400" : "text-zinc-600"}
+            >
+              {activeTab === "hooked" ? (
+                <pre className="whitespace-pre-wrap leading-relaxed">{`$ hooked test
+✓ Test preset activated
+
+Claude: "I fixed the bug."
+→ pnpm test fails (2 errors)
+→ Hook: "Keep working."
+Claude continues...
+→ pnpm test passes
+✓ Done. Preset disabled.`}</pre>
+              ) : (
+                <pre className="whitespace-pre-wrap leading-relaxed">{`$ claude "fix the bug"
+
+Claude: "I fixed the bug."
+→ Agent stops.
+→ You run: pnpm test
+→ Tests fail.
+→ You restart Claude.
+→ Repeat...`}</pre>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="order-1 md:order-2 space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">Autonomous loops.</h2>
+        <p className="text-zinc-400 text-sm leading-relaxed">
+          Claude Code is powerful but reactive. Hooked provides stop hooks that keep the agent
+          working until your success condition is met—tests pass, build succeeds, or you say stop.
+        </p>
+        <div className="flex flex-wrap gap-2 pt-2">
+          <span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">hooked test</span>
+          <span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">hooked build</span>
+          <span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">hooked manual</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
-export default function Home() {
-  const [copied, setCopied] = useState(false)
-  const [isDark, setIsDark] = useState(true)
-  const [activePreset, setActivePreset] = useState<keyof typeof presetDetails | null>(null)
-
-  const installCommand = `git clone https://github.com/arach/hooked.git
-cd hooked && pnpm install
-pnpm run hooked:init`
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(installCommand)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  // Theme classes
-  const theme = {
-    bg: isDark ? "bg-black" : "bg-white",
-    text: isDark ? "text-white" : "text-neutral-900",
-    textMuted: isDark ? "text-white/60" : "text-neutral-600",
-    textSubtle: isDark ? "text-white/40" : "text-neutral-400",
-    textAccent: isDark ? "text-white/90" : "text-neutral-800",
-    cardBg: isDark ? "bg-white/[0.03]" : "bg-neutral-50",
-    cardBorder: isDark ? "border-white/10" : "border-neutral-200",
-    cardBorderHover: isDark ? "hover:border-white/20" : "hover:border-neutral-300",
-    codeBg: isDark ? "bg-white/[0.03]" : "bg-neutral-100",
-    codeBorder: isDark ? "border-white/5" : "border-neutral-200",
-    terminalBg: isDark ? "bg-neutral-900/80" : "bg-neutral-900",
-    divider: isDark ? "bg-white/10" : "bg-neutral-200",
-    footerBorder: isDark ? "border-white/5" : "border-neutral-200",
-  }
-
+// Feature Cards
+function Features() {
   return (
-    <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-300`}>
-      {/* Gradient background */}
-      {isDark && (
-        <>
-          <div className="fixed inset-0 bg-gradient-to-br from-black via-neutral-950 to-black" />
-          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.03),transparent_50%)]" />
-          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(217,119,87,0.06),transparent_50%)]" />
-        </>
-      )}
-      {!isDark && (
-        <>
-          <div className="fixed inset-0 bg-gradient-to-br from-white via-neutral-50 to-white" />
-          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,0,0,0.02),transparent_50%)]" />
-          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(217,119,87,0.05),transparent_50%)]" />
-        </>
-      )}
-
-      {/* Header */}
-      <header className={`sticky top-0 z-50 backdrop-blur-md ${isDark ? "bg-black/80" : "bg-white/80"} border-b ${theme.cardBorder}`}>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg border ${theme.cardBorder} ${theme.cardBg} flex items-center justify-center`}>
-              <img
-                src="/hooked-logo.png"
-                alt="Hooked Logo"
-                className="w-6 h-6 object-contain"
-              />
-            </div>
-            <span className={`text-base font-medium ${theme.text}`}>Hooked</span>
+    <section className="py-16 px-6 max-w-5xl mx-auto border-t border-white/5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
+          <div className="text-sky-500">
+            <Volume2 size={18} />
           </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="https://github.com/arach/hooked"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${theme.textMuted} hover:${theme.text} transition-colors`}
-            >
-              <Github className="w-5 h-5" />
-            </a>
-            <Link
-              href="/docs"
-              className={`text-sm ${theme.textMuted} hover:${theme.text} transition-colors`}
-            >
-              Docs
-            </Link>
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className={`p-2 rounded-lg transition-all duration-200 ${
-                isDark
-                  ? "hover:bg-white/10 text-white/60 hover:text-white"
-                  : "hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900"
-              }`}
-              aria-label="Toggle theme"
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-          </div>
+          <h4 className="text-sm font-bold">Voice Alerts</h4>
+          <p className="text-zinc-500 text-xs leading-relaxed">
+            Never miss a permission prompt. Get audible notifications via SpeakEasy.
+          </p>
         </div>
-      </header>
+        <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
+          <div className="text-sky-500">
+            <Terminal size={18} />
+          </div>
+          <h4 className="text-sm font-bold">Simple CLI</h4>
+          <p className="text-zinc-500 text-xs leading-relaxed">
+            <code className="text-sky-400">hooked test</code> to enable, <code className="text-sky-400">hooked off</code> to disable. That's it.
+          </p>
+        </div>
+        <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
+          <div className="text-sky-500">
+            <Zap size={18} />
+          </div>
+          <h4 className="text-sm font-bold">Zero Config</h4>
+          <p className="text-zinc-500 text-xs leading-relaxed">
+            Works out of the box. Presets for test, build, typecheck, and manual mode.
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
 
-      <main className="relative max-w-5xl mx-auto px-6 py-16">
-        {/* Hero */}
-        <div className="mb-20">
-          <p className={`text-sm font-medium mb-4 ${theme.textSubtle}`}>
+// Social Proof
+function SocialProof() {
+  return (
+    <section className="py-16 px-6 max-w-5xl mx-auto border-t border-white/5">
+      <h2 className="text-center text-zinc-600 text-xs font-bold uppercase tracking-widest mb-8">
+        What people are saying
+      </h2>
+      <div className="grid md:grid-cols-2 gap-4" data-theme="dark">
+        <Tweet id="1986121725487251894" />
+        <Tweet id="2004916410687050167" />
+      </div>
+    </section>
+  )
+}
+
+// CTA
+function CTA() {
+  return (
+    <section className="py-24 px-6 text-center">
+      <div className="max-w-xl mx-auto border border-zinc-800 bg-zinc-900/10 p-10 rounded-lg">
+        <h3 className="text-xl font-bold mb-4">Get started in seconds.</h3>
+        <p className="text-zinc-500 text-sm mb-8">
+          Clone the repo, run the setup script, and you're ready to go.
+        </p>
+        <div className="flex justify-center gap-4">
+          <Link
+            href="/docs"
+            className="px-6 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-zinc-200 transition-colors"
+          >
+            Quickstart Guide
+          </Link>
+          <a
+            href="https://github.com/arach/hooked"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-2 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-900 transition-colors flex items-center gap-2"
+          >
+            <Github size={14} /> View Source
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// Footer
+function Footer() {
+  return (
+    <footer className="py-12 px-6 border-t border-zinc-900 bg-zinc-950/20">
+      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded border border-zinc-700 bg-zinc-800 flex items-center justify-center">
+              <img src="/hooked-logo.png" alt="Hooked" className="w-4 h-4 object-contain" />
+            </div>
+            <span className="text-sm font-bold tracking-tight text-zinc-300">Hooked</span>
+          </div>
+          <p className="text-zinc-600 text-[10px] uppercase font-bold tracking-widest">
             Hooks helper for Claude Code
           </p>
-
-          <h1 className={`text-4xl md:text-5xl font-semibold tracking-tight mb-6 ${theme.text} leading-[1.1]`}>
-            Voice alerts.<br />
-            Auto-continue.
-          </h1>
-
-          <p className={`text-lg ${theme.textMuted} max-w-xl mb-8 leading-relaxed`}>
-            Know when Claude needs you. Keep it working until tests pass, builds succeed, or you say stop.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={copyToClipboard}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-[family-name:var(--font-geist-mono)] text-sm ${
-                isDark
-                  ? "bg-white text-black hover:bg-white/90"
-                  : "bg-neutral-900 text-white hover:bg-neutral-800"
-              } transition-colors`}
-            >
-              <span>git clone https://github.com/arach/hooked</span>
-              {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 opacity-50" />}
-            </button>
-            <Link
-              href="/docs"
-              className={`px-4 py-2.5 rounded-lg font-medium text-sm border transition-colors ${
-                isDark
-                  ? "border-white/20 text-white/80 hover:bg-white/5 hover:text-white"
-                  : "border-neutral-300 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
-              }`}
-            >
-              Documentation
-            </Link>
-          </div>
-
-          <p className={`text-sm ${theme.textSubtle} mt-6`}>
-            Built on <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" target="_blank" rel="noopener noreferrer" className={`${theme.textMuted} hover:${theme.text} transition-colors underline underline-offset-2`}>Claude Code Hooks</a>
-          </p>
         </div>
 
-        {/* Feature Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-16">
-          {/* Speak Card */}
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className={`relative backdrop-blur-sm rounded-2xl border p-6 transition-colors ${theme.cardBg} ${theme.cardBorder} ${theme.cardBorderHover}`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-medium">Speak</h2>
-              </div>
-
-              <p className={`${theme.textMuted} text-sm mb-4 leading-relaxed`}>
-                Miss a permission prompt while multitasking? <span className={theme.textAccent}>Speak fixes that.</span>
-              </p>
-
-              <div className={`rounded-xl p-3 mb-4 border ${theme.codeBg} ${theme.codeBorder}`}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-orange-500 flex-shrink-0">{">"}</span>
-                    <code className={`${theme.textMuted} text-sm font-[family-name:var(--font-geist-mono)] truncate`}>
-                      "In hooked, Claude needs your permission"
-                    </code>
-                  </div>
-                  <AudioDemo isDark={isDark} />
-                </div>
-              </div>
-
-              <div className={`space-y-2 text-sm ${theme.textSubtle}`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 rounded-full bg-green-500" />
-                  <span>Voice alerts via <a href="https://github.com/arach/speakeasy" target="_blank" rel="noopener noreferrer" className={`${theme.textMuted} hover:${theme.textAccent} transition-colors`}>SpeakEasy</a></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-1 rounded-full bg-green-500" />
-                  <span>Context-aware with project name</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Continuations Card */}
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-sky-500/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className={`relative backdrop-blur-sm rounded-2xl border p-6 transition-colors ${theme.cardBg} ${theme.cardBorder} ${theme.cardBorderHover}`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-cyan-600 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-medium">Continuations</h2>
-              </div>
-
-              <p className={`${theme.textMuted} text-sm mb-4 leading-relaxed`}>
-                "Done" doesn't mean "tests passing." <span className={theme.textAccent}>Fix that.</span>
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <PresetButton
-                  preset="test"
-                  isActive={activePreset === "test"}
-                  onClick={() => setActivePreset(activePreset === "test" ? null : "test")}
-                  theme={theme}
-                />
-                <PresetButton
-                  preset="build"
-                  isActive={activePreset === "build"}
-                  onClick={() => setActivePreset(activePreset === "build" ? null : "build")}
-                  theme={theme}
-                />
-                <PresetButton
-                  preset="typecheck"
-                  isActive={activePreset === "typecheck"}
-                  onClick={() => setActivePreset(activePreset === "typecheck" ? null : "typecheck")}
-                  theme={theme}
-                />
-                <PresetButton
-                  preset="manual"
-                  isActive={activePreset === "manual"}
-                  onClick={() => setActivePreset(activePreset === "manual" ? null : "manual")}
-                  theme={theme}
-                />
-              </div>
-
-              {/* Shared detail zone - add command + resulting config */}
-              <div className={`overflow-hidden transition-all duration-300 ${activePreset ? "max-h-72 opacity-100" : "max-h-0 opacity-0"}`}>
-                {activePreset && (
-                  <div className={`rounded-lg border ${theme.codeBg} ${theme.codeBorder} mb-3 font-[family-name:var(--font-geist-mono)] text-[11px] overflow-hidden`}>
-                    {/* Add command */}
-                    <div className={`px-3 py-2 border-b ${theme.codeBorder}`}>
-                      <div className={`${theme.textSubtle} text-[10px] mb-1`}>Enable</div>
-                      <code className="text-sky-400">{presetDetails[activePreset].addCommand}</code>
-                    </div>
-                    {/* Hook runs check, then outputs decision */}
-                    <div className="px-3 py-2 leading-relaxed">
-                      {presetDetails[activePreset].check && (
-                        <div className={`${theme.textSubtle} text-[10px] mb-2`}>
-                          runs <code className="text-green-400">{presetDetails[activePreset].check}</code>
-                        </div>
-                      )}
-                      <div className="flex gap-4 text-[10px]">
-                        <div>
-                          <div className={`${theme.textSubtle} mb-1`}>fails →</div>
-                          <div className="text-red-400">keep working</div>
-                        </div>
-                        <div>
-                          <div className={`${theme.textSubtle} mb-1`}>passes →</div>
-                          <div className="text-green-400">done, stop</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <p className={`text-xs ${theme.textSubtle} leading-relaxed`}>
-                {activePreset ? "Click again to collapse." : "Click any preset to learn more."}
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center gap-8 text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+          <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
+          <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Claude Hooks</a>
+          <a href="https://github.com/arach/hooked" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-white transition-colors">
+            <Github size={12} />
+            GitHub
+          </a>
         </div>
+      </div>
 
+      <div className="max-w-5xl mx-auto mt-12 pt-6 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-zinc-700 font-bold uppercase tracking-[0.15em]">
+        <span>
+          Built with <span className="text-red-500">&hearts;</span> by{" "}
+          <a href="https://x.com/arach" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-zinc-400">@arach</a>
+        </span>
+        <a href="https://arach.dev" target="_blank" rel="noopener noreferrer" className="text-zinc-600 hover:text-zinc-500">
+          arach.dev
+        </a>
+      </div>
+    </footer>
+  )
+}
 
-        {/* How it works */}
-        <section className="mb-20">
-          <h2 className={`text-center ${theme.textSubtle} text-sm font-medium uppercase tracking-wider mb-8`}>
-            How it works
-          </h2>
-          <div className="grid md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-            <div className={`rounded-xl p-4 border ${theme.cardBg} ${theme.cardBorder} text-center`}>
-              <div className={`w-8 h-8 rounded-full ${isDark ? "bg-white/10" : "bg-neutral-100"} flex items-center justify-center mx-auto mb-3`}>
-                <span className={`text-sm font-medium ${theme.textMuted}`}>1</span>
-              </div>
-              <p className={`text-sm font-medium ${theme.text} mb-1`}>Install hooked</p>
-              <p className={`text-xs ${theme.textSubtle}`}>Clone the repo and run the setup script</p>
-            </div>
-            <div className={`rounded-xl p-4 border ${theme.cardBg} ${theme.cardBorder} text-center`}>
-              <div className={`w-8 h-8 rounded-full ${isDark ? "bg-white/10" : "bg-neutral-100"} flex items-center justify-center mx-auto mb-3`}>
-                <span className={`text-sm font-medium ${theme.textMuted}`}>2</span>
-              </div>
-              <p className={`text-sm font-medium ${theme.text} mb-1`}>Activate a preset</p>
-              <p className={`text-xs ${theme.textSubtle}`}>Run <code className="text-sky-500">hooked test</code> or <code className="text-sky-500">hooked build</code></p>
-            </div>
-            <div className={`rounded-xl p-4 border ${theme.cardBg} ${theme.cardBorder} text-center`}>
-              <div className={`w-8 h-8 rounded-full ${isDark ? "bg-white/10" : "bg-neutral-100"} flex items-center justify-center mx-auto mb-3`}>
-                <span className={`text-sm font-medium ${theme.textMuted}`}>3</span>
-              </div>
-              <p className={`text-sm font-medium ${theme.text} mb-1`}>Agents win</p>
-              <p className={`text-xs ${theme.textSubtle}`}>Claude keeps working until it's actually done</p>
-            </div>
-          </div>
+// Main Page
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <main>
+        <Hero />
+
+        {/* Demo Sections */}
+        <section className="py-20 px-6 max-w-5xl mx-auto space-y-24">
+          <VoiceAlertDemo />
+          <ContinuationDemo />
         </section>
 
-        {/* Requirements */}
-        <div className={`max-w-2xl mx-auto mb-20 text-center`}>
-          <p className={`text-xs ${theme.textSubtle}`}>
-            <span className={theme.textMuted}>Requires:</span> Claude Code • Node.js 18+ • macOS/Linux
-            <span className="mx-2">•</span>
-            <span className={theme.textMuted}>Optional:</span> <a href="https://github.com/arach/speakeasy" target="_blank" rel="noopener noreferrer" className="text-sky-500 hover:text-sky-400">SpeakEasy</a> for voice alerts
-          </p>
-        </div>
-
-        {/* Social Proof */}
-        <section className="mb-20">
-          <h2 className={`text-center ${theme.textSubtle} text-sm font-medium uppercase tracking-wider mb-8`}>
-            What people are saying
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4" data-theme={isDark ? "dark" : "light"}>
-            <Tweet id="1986121725487251894" />
-            <Tweet id="2004916410687050167" />
-            <Tweet id="2004894753587068940" />
-            <Tweet id="2004947522889162834" />
-          </div>
-        </section>
-
-        {/* Examples */}
-        <section className="mb-20">
-          <h2 className={`text-center ${theme.textSubtle} text-sm font-medium uppercase tracking-wider mb-8`}>
-            Examples
-          </h2>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* Example 1: SpeakEasy hook */}
-            <div className={`rounded-xl border ${theme.cardBg} ${theme.cardBorder} overflow-hidden`}>
-              <div className={`px-4 py-2 border-b ${theme.cardBorder} ${isDark ? "bg-white/[0.02]" : "bg-neutral-50"}`}>
-                <span className={`text-xs font-medium ${theme.textMuted}`}>SpeakEasy Hook</span>
-              </div>
-              <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-2">
-                <div className={theme.textSubtle}>You're in another app, Claude needs permission...</div>
-                <div className={`mt-3 pt-3 border-t ${theme.cardBorder}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-orange-400">🔊</span>
-                    <span className={theme.textMuted}>"In hooked, Claude needs your permission"</span>
-                  </div>
-                  <div className={`${theme.textSubtle} mt-3`}>You hear it, switch back, approve.</div>
-                  <div className={`${theme.textSubtle} mt-1`}>No more missed prompts.</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Example 2: Continuation hook */}
-            <div className={`rounded-xl border ${theme.cardBg} ${theme.cardBorder} overflow-hidden`}>
-              <div className={`px-4 py-2 border-b ${theme.cardBorder} ${isDark ? "bg-white/[0.02]" : "bg-neutral-50"}`}>
-                <span className={`text-xs font-medium ${theme.textMuted}`}>Continuation Hook</span>
-              </div>
-              <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-2">
-                <div><span className={theme.textSubtle}>$</span> <span className="text-sky-400">hooked test</span></div>
-                <div className={theme.textSubtle}>✓ Test preset activated</div>
-                <div className={`mt-3 pt-3 border-t ${theme.cardBorder} ${theme.textSubtle}`}>
-                  <div>Claude: "I've fixed the bug, let me stop here."</div>
-                  <div className="text-red-400 mt-1">→ pnpm test fails (2 errors)</div>
-                  <div className="text-orange-400 mt-1">→ Hook: "Tests failed. Fix and retry."</div>
-                  <div className={`${theme.textMuted} mt-1`}>Claude continues working...</div>
-                  <div className="text-green-400 mt-1">→ pnpm test passes</div>
-                  <div className={`${theme.textMuted} mt-1`}>→ Claude stops (actually done)</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <div className="flex justify-center mb-24">
-          <Button
-            className={`font-medium px-6 py-5 rounded-full transition-all duration-200 hover:scale-105 ${
-              isDark
-                ? "bg-white text-black hover:bg-white/90"
-                : "bg-neutral-900 text-white hover:bg-neutral-800"
-            }`}
-            asChild
-          >
-            <Link href="https://github.com/arach/hooked">
-              <Github className="w-4 h-4 mr-2" />
-              View on GitHub
-            </Link>
-          </Button>
-        </div>
-
-        {/* Footer */}
-        <footer className={`text-center border-t ${theme.footerBorder} pt-8`}>
-          <div className={`flex justify-center gap-6 text-sm ${theme.textSubtle} mb-4`}>
-            <a
-              href="https://github.com/arach/speakeasy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`hover:${theme.textMuted} transition-colors`}
-            >
-              SpeakEasy
-            </a>
-            <a
-              href="https://docs.anthropic.com/en/docs/claude-code/hooks"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`hover:${theme.textMuted} transition-colors`}
-            >
-              Claude Code Hooks
-            </a>
-          </div>
-          <p className={`text-sm ${isDark ? "text-white/20" : "text-neutral-300"} mb-1`}>
-            Built with <span className="text-red-500">&hearts;</span> by <a href="https://x.com/arach" target="_blank" rel="noopener noreferrer" className={`${isDark ? "text-white/40 hover:text-white/60" : "text-neutral-400 hover:text-neutral-600"} transition-colors`}>@arach</a>
-          </p>
-          <p className={`text-xs ${isDark ? "text-white/20" : "text-neutral-300"}`}>
-            <a href="https://arach.dev" target="_blank" rel="noopener noreferrer" className={`${isDark ? "text-white/30 hover:text-white/50" : "text-neutral-400 hover:text-neutral-500"} transition-colors`}>arach.dev</a>
-          </p>
-        </footer>
+        <Features />
+        <SocialProof />
+        <CTA />
       </main>
+      <Footer />
     </div>
   )
 }
