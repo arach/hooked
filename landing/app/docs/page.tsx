@@ -701,7 +701,7 @@ export default function DocsPage() {
       <footer className={`relative border-t ${theme.cardBorder} py-8`}>
         <div className="max-w-4xl mx-auto px-6 text-center">
           <p className={`text-sm ${theme.textSubtle}`}>
-            Built by <a href="https://github.com/arach" target="_blank" rel="noopener noreferrer" className={`${theme.textMuted} hover:${theme.text}`}>@arach</a>
+            Built with <span className="text-red-500">&hearts;</span> by <a href="https://x.com/arach" target="_blank" rel="noopener noreferrer" className={`${theme.textMuted} hover:${theme.text}`}>@arach</a> · <a href="https://arach.dev" target="_blank" rel="noopener noreferrer" className={`${theme.textMuted} hover:${theme.text}`}>arach.dev</a>
           </p>
         </div>
       </footer>

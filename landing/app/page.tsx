@@ -512,11 +512,11 @@ pnpm run hooked:init`
               Claude Code Hooks
             </a>
           </div>
-          <p className={`text-sm ${isDark ? "text-white/20" : "text-neutral-300"} mb-2`}>
-            Built by <a href="https://github.com/arach" target="_blank" rel="noopener noreferrer" className={`${isDark ? "text-white/40 hover:text-white/60" : "text-neutral-400 hover:text-neutral-600"} transition-colors`}>@arach</a>
+          <p className={`text-sm ${isDark ? "text-white/20" : "text-neutral-300"} mb-1`}>
+            Built with <span className="text-red-500">&hearts;</span> by <a href="https://x.com/arach" target="_blank" rel="noopener noreferrer" className={`${isDark ? "text-white/40 hover:text-white/60" : "text-neutral-400 hover:text-neutral-600"} transition-colors`}>@arach</a>
           </p>
-          <p className={`text-xs ${isDark ? "text-white/10" : "text-neutral-200"}`}>
-            Part of the Claude Code ecosystem
+          <p className={`text-xs ${isDark ? "text-white/20" : "text-neutral-300"}`}>
+            <a href="https://arach.dev" target="_blank" rel="noopener noreferrer" className={`${isDark ? "text-white/30 hover:text-white/50" : "text-neutral-400 hover:text-neutral-500"} transition-colors`}>arach.dev</a>
           </p>
         </footer>
       </main>
