@@ -170,7 +170,7 @@ function VoiceAlertDemo() {
 
 // Until Demo
 const untilExamples = {
-  manual: {
+  prompt: {
     command: '/hooked until "implement auth"',
     check: null,
     description: "Keep working toward objective",
@@ -197,7 +197,7 @@ const untilExamples = {
 }
 
 function UntilDemo() {
-  const [activeExample, setActiveExample] = useState<keyof typeof untilExamples>("manual")
+  const [activeExample, setActiveExample] = useState<keyof typeof untilExamples>("prompt")
   const example = untilExamples[activeExample]
 
   return (
@@ -252,7 +252,7 @@ function UntilDemo() {
             <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Voice</span>
           </div>
           <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs text-zinc-400 space-y-2">
-            <p><span className="text-green-400">→</span> "Loop started. {activeExample === 'manual' ? 'implement auth' : example.check}"</p>
+            <p><span className="text-green-400">→</span> "Loop started. {activeExample === 'prompt' ? 'implement auth' : example.check}"</p>
             <p><span className="text-sky-400">→</span> "Round 2. Objective: ..."</p>
             <p><span className="text-orange-400">→</span> "Mission complete."</p>
           </div>
