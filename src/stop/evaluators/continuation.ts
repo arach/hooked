@@ -1,18 +1,20 @@
-import { execSync } from 'child_process'
-import { continuation } from '../../core/continuation'
+import { config } from '../../core/config'
+import { state } from '../../core/state'
+import { presets } from '../../core/presets'
+import * as speak from '../../core/speak'
 import type { Evaluator } from '../types'
 
 /**
- * Contextual continuation evaluator.
+ * Preset-based continuation evaluator.
  *
- * Two modes:
- * - manual: Keep working until user says OFF
- * - check: Keep working until a command exits 0
+ * Checks for active preset in this order:
+ * 1. Session-specific state (~/.hooked/state/{session_id}.json)
+ * 2. Global config (~/.hooked/config.json)
  *
  * Toggle with:
- *   /hooked continuation "objective here"     (manual mode)
- *   /hooked continuation --check "pnpm test"  (check mode)
- *   /hooked continuation OFF
+ *   hooked bind test          (session-scoped, recommended)
+ *   hooked continue test      (global, applies to all sessions)
+ *   hooked off                (disable)
  *
  * @example
  * createStopHook([
@@ -21,46 +23,57 @@ import type { Evaluator } from '../types'
  * ])
  */
 export function continueUntil(): Evaluator {
-  return (_ctx) => {
-    const state = continuation.get()
+  return (ctx) => {
+    const sessionId = ctx.input.session_id
 
-    // If continuation is not active, allow stop
-    if (!state?.active) {
+    // Check session-specific preset first, then fall back to global
+    const sessionPreset = state.getPreset(sessionId)
+    const globalPreset = config.getActivePreset()
+    const activePresetName = sessionPreset ?? globalPreset
+
+    // If no preset is active, allow stop (default: off)
+    if (!activePresetName) {
       return {
         shouldContinue: false,
         reason: 'Continuation not active',
       }
     }
 
-    // Check mode: run command and check exit code
-    if (state.mode === 'check' && state.check) {
-      try {
-        execSync(state.check, {
-          stdio: 'pipe',
-          timeout: 60000,
-        })
-        // Command succeeded (exit 0) - work is done!
-        return {
-          shouldContinue: false,
-          reason: `Check passed: ${state.check}`,
-        }
-      } catch {
-        // Command failed - keep working
-        return {
-          shouldContinue: true,
-          reason: `Check failing: ${state.check}`,
-        }
+    // Get the preset
+    const preset = presets.get(activePresetName)
+    if (!preset) {
+      return {
+        shouldContinue: false,
+        reason: `Unknown preset: ${activePresetName}`,
       }
     }
 
-    // Manual mode: keep working until user says OFF
-    const objective = state.objective
-      ? `Objective: ${state.objective}`
-      : 'Keep working (manual mode)'
+    // Evaluate the preset
+    const result = presets.evaluate(preset)
 
+    if (result.done) {
+      // Work is done! Clear the appropriate preset and allow stop
+      if (sessionPreset) {
+        // Clear session-specific preset
+        state.setPreset(sessionId, null)
+      } else {
+        // Clear global preset
+        config.setActivePreset(null)
+      }
+
+      // Announce completion via SpeakEasy
+      speak.announceCompletion(activePresetName, ctx.project)
+
+      return {
+        shouldContinue: false,
+        reason: result.reason,
+      }
+    }
+
+    // Keep working
     return {
       shouldContinue: true,
-      reason: objective,
+      reason: result.reason,
     }
   }
 }

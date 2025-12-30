@@ -5,6 +5,7 @@ A hooks helper for Claude Code. Voice alerts when Claude needs you, continuation
 ## Table of Contents
 
 - [Introduction](#introduction)
+- [Session-Scoped Continuation](#session-scoped-continuation) **NEW**
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Voice Alerts (SpeakEasy)](#voice-alerts-speakeasy)
@@ -41,6 +42,117 @@ Hooked installs [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-co
 - Node.js 18+
 - macOS or Linux
 - (Optional) [SpeakEasy](https://github.com/arach/speakeasy) for voice alerts
+
+---
+
+## Session-Scoped Continuation
+
+> **The killer feature.** Run different continuation objectives in different Claude sessions without them interfering with each other.
+
+### The Problem
+
+You're working on a complex project with multiple Claude Code sessions open:
+
+- **Terminal 1**: Claude is documenting your codebase
+- **Terminal 2**: Claude is fixing a bug
+- **Terminal 3**: Claude is writing tests
+
+With global continuation, if you run `hooked manual "Document the codebase"`, **all three sessions** get that objective. The bug-fixing Claude starts trying to document. The test-writing Claude gets confused. Everything breaks.
+
+You need continuation to be **session-specific** — each Claude instance should have its own objective.
+
+### The Challenge
+
+Claude Code's hook system passes `session_id` to hooks when they fire. But there's no API to query "what's my current session ID?" from the terminal or from within Claude.
+
+So when you run `hooked manual "Document codebase"`, you can't say "activate for session X" because you don't know X yet.
+
+### The Solution: Lazy Binding
+
+Hooked uses a "pending activation" pattern:
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│  Terminal       │     │  ~/.hooked/      │     │  Claude Session     │
+│                 │     │                  │     │                     │
+│  hooked bind    │────>│  pending.json    │     │                     │
+│  manual "docs"  │     │  {preset,obj}    │     │                     │
+│                 │     │                  │     │                     │
+└─────────────────┘     └──────────────────┘     └─────────────────────┘
+                                                          │
+                                                          │ Claude tries to stop
+                                                          │ (triggers stop hook)
+                                                          ▼
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│                 │     │  state/          │     │  Stop Hook          │
+│                 │     │  {session_id}    │<────│                     │
+│                 │     │  .json           │     │  Claims pending,    │
+│                 │     │                  │     │  binds to session   │
+└─────────────────┘     └──────────────────┘     └─────────────────────┘
+```
+
+1. **You run** `hooked bind manual "Document the codebase"`
+2. **Hooked writes** `~/.hooked/pending.json` with your preset and objective
+3. **Claude does something** that triggers a hook (notification or stop)
+4. **Hook receives** `session_id` from Claude Code's context
+5. **Hook claims** the pending activation, writing to `~/.hooked/state/{session_id}.json`
+6. **Pending is cleared** — other sessions won't see it
+7. **Future stop hooks** for that session read from its own state file
+
+### Usage
+
+```bash
+# Session-scoped (recommended)
+hooked bind manual "Document the codebase"
+hooked bind test                    # Keep working until tests pass
+hooked bind build "Fix the build"   # With custom objective
+
+# Check status
+hooked status
+# Output:
+#   Pending: manual (waiting for session)
+#   Objective: Document the codebase
+
+# Disable
+hooked off                          # Clears pending or current session
+```
+
+### The Outcome
+
+After binding, you'll see session-specific state files:
+
+```
+~/.hooked/state/
+├── bfe239db-369f-4423-8a90-43bfe6a17955.json   # Session 1: documenting
+├── a1b2c3d4-5678-90ab-cdef-1234567890ab.json   # Session 2: fixing bugs
+└── 98765432-abcd-ef01-2345-6789abcdef01.json   # Session 3: writing tests
+```
+
+Each file contains:
+```json
+{
+  "sessionId": "bfe239db-369f-4423-8a90-43bfe6a17955",
+  "iteration": 3,
+  "startedAt": "2024-01-15T10:30:00.000Z",
+  "lastUpdatedAt": "2024-01-15T10:35:00.000Z",
+  "project": "my-project",
+  "activePreset": "manual",
+  "objective": "Document the codebase"
+}
+```
+
+**Each session has its own continuation state.** They don't interfere. When one session completes its objective, only its state is cleared.
+
+### Global Mode (Legacy)
+
+If you want the old behavior where a preset applies to ALL sessions:
+
+```bash
+hooked continue test    # Global - affects all Claude sessions
+hooked continue off     # Disable global
+```
+
+This is useful for simple cases where you only have one Claude session active.
 
 ---
 

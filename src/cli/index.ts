@@ -6,6 +6,7 @@ import { execSync } from 'child_process'
 import { homedir } from 'os'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { runCommand } from './commands'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = join(__dirname, '..', '..')
@@ -20,6 +21,23 @@ const HOOKED_HISTORY = join(HOOKED_HOME, 'history')
 const CLAUDE_DIR = join(homedir(), '.claude')
 const HOOKS_DIR = join(CLAUDE_DIR, 'hooks')
 const SETTINGS_FILE = join(CLAUDE_DIR, 'settings.json')
+
+// Check if this is a runtime command (not init)
+const args = process.argv.slice(2)
+const RUNTIME_COMMANDS = ['continue', 'c', 'status', 's', 'presets', 'p', 'help', '-h', '--help']
+const firstArg = args[0]
+
+// Handle runtime commands or shorthand preset names
+if (firstArg && (RUNTIME_COMMANDS.includes(firstArg) || !['init'].includes(firstArg))) {
+  // Check if it might be a preset name shorthand
+  if (firstArg && !RUNTIME_COMMANDS.includes(firstArg) && firstArg !== 'init') {
+    // Could be `hooked test` as shorthand for `hooked continue test`
+    runCommand([firstArg])
+  } else {
+    runCommand(args)
+  }
+  process.exit(0)
+}
 
 async function main() {
   intro('🎣 Welcome to hooked')

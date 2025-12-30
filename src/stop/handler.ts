@@ -2,6 +2,7 @@
 
 import { log } from '../core/log'
 import { state } from '../core/state'
+import * as speak from '../core/speak'
 import type {
   StopHookInput,
   StopHookResponse,
@@ -68,6 +69,21 @@ export function createStopHook(evaluators: Evaluator[], options: StopHookOptions
 
     const { session_id: sessionId, transcript_path: transcriptPath, stop_hook_active: stopHookActive } = input
     const project = deriveProjectName(transcriptPath)
+
+    // Check for pending activation and claim it for this session
+    const claimed = state.claimPending(sessionId, project)
+    if (claimed && claimed.activePreset) {
+      log.event({
+        session: sessionId,
+        project,
+        event: 'stop:claimed-pending',
+        preset: claimed.activePreset,
+        objective: claimed.objective,
+      })
+
+      // Announce via SpeakEasy
+      speak.announceContinuation(claimed.activePreset, project, claimed.objective ?? undefined)
+    }
 
     // If not actively continuing from a previous stop hook, just approve
     // (This is the first time Claude is trying to stop)

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink } from "lucide-react"
+import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink, Layers, Fingerprint } from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Tweet } from "react-tweet"
@@ -149,14 +149,19 @@ function VoiceAlertDemo() {
 
       <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-6 font-[family-name:var(--font-geist-mono)] text-xs">
         <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
-          <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Notification Hook</span>
-          <span className="text-sky-400">~/.claude/hooks/</span>
+          <span className="text-zinc-500 uppercase text-[10px] tracking-wider">settings.json</span>
+          <span className="text-sky-400">~/.claude/</span>
         </div>
-        <div className="text-zinc-400 space-y-2">
-          <p className="text-zinc-600">// When Claude needs permission</p>
-          <p><span className="text-sky-400">onPrompt</span>: () =&gt; speak(<span className="text-zinc-200">"Claude needs your permission"</span>)</p>
-          <p className="pt-2 text-zinc-600">// When Claude is waiting</p>
-          <p><span className="text-sky-400">onWait</span>: () =&gt; speak(<span className="text-zinc-200">"Claude is waiting for you"</span>)</p>
+        <div className="text-zinc-400 space-y-1 leading-relaxed">
+          <p><span className="text-zinc-600">"hooks"</span>: {"{"}</p>
+          <p className="pl-4"><span className="text-sky-400">"Notification"</span>: [{"{"}</p>
+          <p className="pl-8"><span className="text-zinc-500">"matcher"</span>: <span className="text-green-400">"*"</span>,</p>
+          <p className="pl-8"><span className="text-zinc-500">"hooks"</span>: [{"{"}</p>
+          <p className="pl-12"><span className="text-zinc-500">"type"</span>: <span className="text-green-400">"command"</span>,</p>
+          <p className="pl-12"><span className="text-zinc-500">"command"</span>: <span className="text-green-400">"~/.hooked/notify.ts"</span></p>
+          <p className="pl-8">{"}]"}</p>
+          <p className="pl-4">{"}]"}</p>
+          <p>{"}"}</p>
         </div>
       </div>
     </div>
@@ -164,60 +169,104 @@ function VoiceAlertDemo() {
 }
 
 // Continuation Demo
+const presetExamples = {
+  test: {
+    command: "hooked test",
+    check: "pnpm test",
+    prompt: "Tests failed. Fix and retry.",
+  },
+  build: {
+    command: "hooked build",
+    check: "pnpm build",
+    prompt: "Build failed. Fix errors.",
+  },
+  typecheck: {
+    command: "hooked typecheck",
+    check: "pnpm typecheck",
+    prompt: "Type errors. Fix them.",
+  },
+  manual: {
+    command: "hooked manual",
+    check: null,
+    prompt: "Keep going until I say stop.",
+  },
+}
+
 function ContinuationDemo() {
-  const [activeTab, setActiveTab] = useState<"hooked" | "vanilla">("hooked")
+  const [activePreset, setActivePreset] = useState<keyof typeof presetExamples>("test")
+  const preset = presetExamples[activePreset]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-      <div className="order-2 md:order-1 bg-black border border-zinc-800 rounded-lg overflow-hidden text-xs">
-        <div className="flex gap-2 p-2 bg-zinc-900 border-b border-zinc-800">
-          <button
-            onClick={() => setActiveTab("hooked")}
-            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-              activeTab === "hooked" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-400"
-            }`}
-          >
-            hooked
-          </button>
-          <button
-            onClick={() => setActiveTab("vanilla")}
-            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-              activeTab === "vanilla" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-400"
-            }`}
-          >
-            vanilla
-          </button>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+      <div className="order-2 md:order-1 space-y-4">
+        {/* Command */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
+          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Command</span>
+          </div>
+          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-sm">
+            <span className="text-zinc-600">$ </span>
+            <span className="text-sky-400">{preset.command}</span>
+          </div>
         </div>
-        <div className="p-6 font-[family-name:var(--font-geist-mono)] min-h-[160px]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className={activeTab === "hooked" ? "text-sky-400" : "text-zinc-600"}
-            >
-              {activeTab === "hooked" ? (
-                <pre className="whitespace-pre-wrap leading-relaxed">{`$ hooked test
-✓ Test preset activated
 
-Claude: "I fixed the bug."
-→ pnpm test fails (2 errors)
-→ Hook: "Keep working."
-Claude continues...
-→ pnpm test passes
-✓ Done. Preset disabled.`}</pre>
-              ) : (
-                <pre className="whitespace-pre-wrap leading-relaxed">{`$ claude "fix the bug"
+        {/* Config */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
+          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Stop Hook Config</span>
+            <span className="text-zinc-600 text-[10px]">~/.claude/settings.json</span>
+          </div>
+          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs text-zinc-400 space-y-1">
+            <p><span className="text-zinc-600">"Stop"</span>: [{"{"}</p>
+            {preset.check ? (
+              <>
+                <p className="pl-4"><span className="text-zinc-500">"command"</span>: <span className="text-green-400">"{preset.check}"</span>,</p>
+                <p className="pl-4"><span className="text-zinc-500">"onFail"</span>: <span className="text-orange-400">"{preset.prompt}"</span></p>
+              </>
+            ) : (
+              <p className="pl-4"><span className="text-zinc-500">"prompt"</span>: <span className="text-orange-400">"{preset.prompt}"</span></p>
+            )}
+            <p>{"}]"}</p>
+          </div>
+        </div>
 
-Claude: "I fixed the bug."
-→ Agent stops.
-→ You run: pnpm test
-→ Tests fail.
-→ You restart Claude.
-→ Repeat...`}</pre>
-              )}
-            </motion.div>
-          </AnimatePresence>
+        {/* Outcome */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
+          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">When Claude Stops</span>
+          </div>
+          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-2">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePreset}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-1.5"
+              >
+                {preset.check ? (
+                  <>
+                    <p className="text-zinc-500">Hook runs: <span className="text-zinc-300">{preset.check}</span></p>
+                    <div className="flex gap-6 pt-2">
+                      <div>
+                        <p className="text-zinc-600 text-[10px] mb-1">fails →</p>
+                        <p className="text-red-400">keep working</p>
+                      </div>
+                      <div>
+                        <p className="text-zinc-600 text-[10px] mb-1">passes →</p>
+                        <p className="text-green-400">done, stop</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-zinc-500">Hook blocks stop with prompt:</p>
+                    <p className="text-orange-400">"{preset.prompt}"</p>
+                    <p className="text-zinc-600 pt-2">Run <span className="text-sky-400">hooked off</span> to disable</p>
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -225,12 +274,22 @@ Claude: "I fixed the bug."
         <h2 className="text-2xl font-bold tracking-tight">Autonomous loops.</h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
           Claude Code is powerful but reactive. Hooked provides stop hooks that keep the agent
-          working until your success condition is met—tests pass, build succeeds, or you say stop.
+          working until your success condition is met.
         </p>
-        <div className="flex flex-wrap gap-2 pt-2">
-          <span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">hooked test</span>
-          <span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">hooked build</span>
-          <span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">hooked manual</span>
+        <div className="flex flex-wrap gap-2 pt-4">
+          {(Object.keys(presetExamples) as Array<keyof typeof presetExamples>).map((key) => (
+            <button
+              key={key}
+              onClick={() => setActivePreset(key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                activePreset === key
+                  ? "bg-sky-500 text-white"
+                  : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+              }`}
+            >
+              {key}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -268,6 +327,96 @@ function Features() {
           <p className="text-zinc-500 text-xs leading-relaxed">
             Works out of the box. Presets for test, build, typecheck, and manual mode.
           </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// Session-Scoped Feature Highlight
+function SessionScopedFeature() {
+  return (
+    <section className="py-20 px-6 max-w-5xl mx-auto border-t border-white/5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div className="space-y-6">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-[10px] font-bold text-sky-400 uppercase tracking-wider">
+            <Fingerprint size={12} /> Session-Scoped
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Different objectives.<br />Different sessions.
+          </h2>
+          <p className="text-zinc-400 text-sm leading-relaxed">
+            Run multiple Claude Code sessions with unique continuation objectives.
+            One documents your codebase. Another fixes bugs. A third writes tests.
+            <span className="text-white font-medium"> They never interfere.</span>
+          </p>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-sky-500/10 flex items-center justify-center mt-0.5">
+                <span className="text-sky-400 text-xs">1</span>
+              </div>
+              <div>
+                <span className="text-zinc-300">Bind to a session:</span>
+                <code className="ml-2 text-sky-400 text-xs">hooked bind manual "Document API"</code>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-sky-500/10 flex items-center justify-center mt-0.5">
+                <span className="text-sky-400 text-xs">2</span>
+              </div>
+              <div>
+                <span className="text-zinc-300">Claude claims it automatically</span>
+                <span className="text-zinc-500 text-xs ml-2">(via stop hook)</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded bg-sky-500/10 flex items-center justify-center mt-0.5">
+                <span className="text-sky-400 text-xs">3</span>
+              </div>
+              <div>
+                <span className="text-zinc-300">Other sessions unaffected</span>
+                <span className="text-zinc-500 text-xs ml-2">(unique session_id binding)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-6 font-[family-name:var(--font-geist-mono)] text-xs">
+          <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">~/.hooked/state/</span>
+            <Layers size={14} className="text-sky-400" />
+          </div>
+          <div className="space-y-3">
+            <div className="p-3 rounded bg-zinc-900/50 border border-zinc-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sky-400">bfe239db...json</span>
+                <span className="text-green-400 text-[10px]">active</span>
+              </div>
+              <div className="text-zinc-500 text-[10px] space-y-1">
+                <p>preset: <span className="text-zinc-300">manual</span></p>
+                <p>objective: <span className="text-zinc-300">"Document API"</span></p>
+              </div>
+            </div>
+            <div className="p-3 rounded bg-zinc-900/50 border border-zinc-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sky-400">a1b2c3d4...json</span>
+                <span className="text-green-400 text-[10px]">active</span>
+              </div>
+              <div className="text-zinc-500 text-[10px] space-y-1">
+                <p>preset: <span className="text-zinc-300">test</span></p>
+                <p>objective: <span className="text-zinc-300">"Fix auth tests"</span></p>
+              </div>
+            </div>
+            <div className="p-3 rounded bg-zinc-900/50 border border-zinc-800 opacity-50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-zinc-500">98765432...json</span>
+                <span className="text-zinc-600 text-[10px]">completed</span>
+              </div>
+              <div className="text-zinc-600 text-[10px]">
+                <p>preset: build</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -373,6 +522,7 @@ export default function Home() {
           <ContinuationDemo />
         </section>
 
+        <SessionScopedFeature />
         <Features />
         <SocialProof />
         <CTA />
