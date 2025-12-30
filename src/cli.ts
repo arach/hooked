@@ -4,15 +4,15 @@
  *
  * hooked enhances Claude Code with:
  *   - Voice announcements when Claude completes tasks
- *   - Session continuations to keep Claude working
+ *   - Session-scoped "until" loops to keep Claude working
  *
  * Commands:
- *   status                      Show current state
- *   announcements on|off        Toggle voice announcements
- *   continuations "objective"   Keep working toward objective
- *   continuations check "cmd"   Keep working until command passes
- *   continuations off           Clear all continuations
- *   continuations pause         Stop after next cycle
+ *   status                Show current state
+ *   speak on|off          Toggle voice announcements
+ *   until "objective"     Keep working toward objective
+ *   until check "cmd"     Keep working until command passes
+ *   until off             Clear all until loops
+ *   until pause           Stop after next cycle
  */
 
 import { continuation } from './continuation'
@@ -23,55 +23,55 @@ const [, , command, ...args] = process.argv
 
 function showHelp(): void {
   console.log(`
-hooked - Voice announcements & continuations for Claude Code
+hooked - Voice & until loops for Claude Code
 
 Commands:
-  status                      Show current state
+  status                Show current state
 
-Announcements:
-  announcements on|off        Toggle voice announcements
+Speak:
+  speak on|off          Toggle voice announcements
 
-Continuations:
-  continuations "objective"   Keep working toward objective
-  continuations check "cmd"   Keep working until command passes
-  continuations off           Clear all continuations
-  continuations pause         Stop after next cycle
+Until:
+  until "objective"     Keep working toward objective
+  until check "cmd"     Keep working until command passes
+  until off             Clear all until loops
+  until pause           Stop after next cycle
 
 Examples:
   hooked status
-  hooked announcements off
-  hooked continuations "implement auth system"
-  hooked continuations check "pnpm test"
-  hooked continuations off
+  hooked speak off
+  hooked until "implement auth system"
+  hooked until check "pnpm test"
+  hooked off
 `)
 }
 
-function handleAnnouncements(): void {
+function handleSpeak(): void {
   const value = args[0]?.toLowerCase()
 
   if (value === 'on' || value === 'true' || value === '1') {
     config.setFlag('speak', true)
-    console.log('Announcements: ON')
+    console.log('Speak: ON')
   } else if (value === 'off' || value === 'false' || value === '0') {
     config.setFlag('speak', false)
-    console.log('Announcements: OFF')
+    console.log('Speak: OFF')
   } else {
     const current = config.getFlag('speak')
-    console.log(`Announcements: ${current ? 'ON' : 'OFF'}`)
-    console.log('\nUsage: hooked announcements on|off')
+    console.log(`Speak: ${current ? 'ON' : 'OFF'}`)
+    console.log('\nUsage: hooked speak on|off')
   }
 }
 
-async function handleContinuations(): Promise<void> {
+async function handleUntil(): Promise<void> {
   const subcommand = args[0]
 
   if (!subcommand) {
-    // Show continuation status
+    // Show until status
     const pending = continuation.getPending()
     const sessions = continuation.getActiveSessions()
     const paused = continuation.isPaused()
 
-    console.log('=== Continuations ===\n')
+    console.log('=== Until ===\n')
 
     if (paused) {
       console.log('PAUSED: Will stop after next cycle\n')
@@ -96,7 +96,7 @@ async function handleContinuations(): Promise<void> {
     }
 
     if (!pending && sessions.length === 0 && !paused) {
-      console.log('No active continuations.')
+      console.log('No active until loops.')
     }
     return
   }
@@ -107,28 +107,28 @@ async function handleContinuations(): Promise<void> {
       continuation.clearPending()
       continuation.clearAllSessions()
       continuation.clearPause()
-      console.log('All continuations cleared.')
-      await speak('Mission complete. Continuations cleared.')
+      console.log('All until loops cleared.')
+      await speak('Mission complete.')
       break
 
     case 'pause':
       continuation.setPause()
       console.log('Pause requested.')
-      console.log('Active continuation will complete its current cycle then stop.')
+      console.log('Active loop will complete its current cycle then stop.')
       break
 
     case 'check': {
       const checkCmd = args.slice(1).join(' ')
       if (!checkCmd) {
         console.error('Error: check command required')
-        console.error('Usage: hooked continuations check "pnpm test"')
+        console.error('Usage: hooked until check "pnpm test"')
         process.exit(1)
       }
       const state = continuation.setPending('check', checkCmd)
-      console.log('Continuation pending.')
+      console.log('Until loop pending.')
       console.log(`Mode: check`)
       console.log(`Command: ${state.check}`)
-      console.log('\nNext Claude stop will claim this continuation.')
+      console.log('\nNext Claude stop will claim this loop.')
       break
     }
 
@@ -136,10 +136,10 @@ async function handleContinuations(): Promise<void> {
       // Treat as objective
       const objective = [subcommand, ...args.slice(1)].join(' ')
       const state = continuation.setPending('manual', objective)
-      console.log('Continuation pending.')
+      console.log('Until loop pending.')
       console.log(`Mode: manual`)
       console.log(`Objective: ${state.objective}`)
-      console.log('\nNext Claude stop will claim this continuation.')
+      console.log('\nNext Claude stop will claim this loop.')
     }
   }
 }
@@ -152,14 +152,14 @@ function handleStatus(): void {
 
   console.log('=== Hooked Status ===\n')
 
-  // Announcements section
-  console.log('Announcements:')
+  // Speak section
+  console.log('Speak:')
   console.log(`  Voice: ${cfg.flags.speak ? 'ON' : 'OFF'}`)
   console.log(`  Logging: ${cfg.flags.logging ? 'ON' : 'OFF'}`)
   console.log()
 
-  // Continuations section
-  console.log('Continuations:')
+  // Until section
+  console.log('Until:')
 
   if (paused) {
     console.log('  PAUSED: Will stop after next cycle')
@@ -190,17 +190,14 @@ function handleStatus(): void {
 // Main router
 async function main(): Promise<void> {
   switch (command) {
-    case 'announcements':
-    case 'announce':
-    case 'a':
-      handleAnnouncements()
+    case 'speak':
+    case 'sp':
+      handleSpeak()
       break
 
-    case 'continuations':
-    case 'continuation':
-    case 'continue':
-    case 'c':
-      await handleContinuations()
+    case 'until':
+    case 'u':
+      await handleUntil()
       break
 
     case 'status':
@@ -210,16 +207,16 @@ async function main(): Promise<void> {
       break
 
     case 'off':
-      // Shortcut for continuations off
+      // Shortcut for until off
       continuation.clearPending()
       continuation.clearAllSessions()
       continuation.clearPause()
-      console.log('All continuations cleared.')
-      await speak('Mission complete. Continuations cleared.')
+      console.log('All until loops cleared.')
+      await speak('Mission complete.')
       break
 
     case 'pause':
-      // Shortcut for continuations pause
+      // Shortcut for until pause
       continuation.setPause()
       console.log('Pause requested.')
       break

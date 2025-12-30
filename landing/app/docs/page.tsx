@@ -11,15 +11,15 @@ import Link from "next/link"
 // Import the markdown content
 const docsContent = `# Hooked Documentation
 
-Voice announcements and session-scoped continuations for Claude Code.
+Voice announcements and session-scoped until loops for Claude Code.
 
 ## Table of Contents
 
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Voice Announcements](#voice-announcements)
-- [Continuations](#continuations)
+- [Speak (Voice)](#speak-voice)
+- [Until Loops](#until-loops)
 - [CLI Reference](#cli-reference)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
@@ -36,7 +36,7 @@ Voice announcements and session-scoped continuations for Claude Code.
 
 Hooked adds:
 - **Voice announcements** via SpeakEasy when Claude needs your attention
-- **Session-scoped continuations** that keep Claude working toward your objective
+- **Session-scoped until loops** that keep Claude working toward your objective
 
 ### How It Works
 
@@ -45,11 +45,11 @@ Hooked installs [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-co
 - **Notification hooks** — Trigger voice announcements on permission requests, errors, or when Claude is waiting
 - **Stop hooks** — Evaluate whether Claude should continue working based on your objective or check command
 
-### Key Feature: Session-Scoped Continuations
+### Key Feature: Session-Scoped Until Loops
 
-Continuations are bound to specific Claude sessions using a "lazy binding" pattern:
+Until loops are bound to specific Claude sessions using a "lazy binding" pattern:
 
-1. You set a pending continuation (objective or check command)
+1. You set a pending until loop (objective or check command)
 2. The next Claude session that tries to stop claims it
 3. That session keeps working until the objective is complete or check passes
 4. Other sessions are unaffected
@@ -103,26 +103,26 @@ Follow the prompts to configure your TTS provider (ElevenLabs recommended).
 
 ## Quick Start
 
-### Start a continuation
+### Start an until loop
 
 \`\`\`bash
 # Keep Claude working toward an objective
-hooked continuations "implement the auth system"
+hooked until "implement the auth system"
 
 # Or keep working until a command passes
-hooked continuations check "pnpm test"
+hooked until check "pnpm test"
 \`\`\`
 
 ### What happens next
 
-1. You set a pending continuation
-2. Next time Claude tries to stop, it claims the continuation
-3. Voice announces: "Continuation started. implement the auth system"
+1. You set a pending until loop
+2. Next time Claude tries to stop, it claims the loop
+3. Voice announces: "Loop started. implement the auth system"
 4. Claude keeps working, announcing each round: "Round 2. Objective: implement the auth system"
 5. When you're satisfied, run \`hooked off\`
-6. Voice announces: "Mission complete. Continuations cleared."
+6. Voice announces: "Mission complete."
 
-### End the continuation
+### End the loop
 
 \`\`\`bash
 hooked off
@@ -130,34 +130,34 @@ hooked off
 
 ---
 
-## Voice Announcements
+## Speak (Voice)
 
 Voice announcements notify you audibly when Claude needs attention or continuation state changes.
 
-### What triggers announcements
+### What triggers voice
 
 | Event | Voice Message |
 |-------|---------------|
 | Permission request | "In {project}, Claude needs your permission" |
 | Waiting for input | "In {project}, Claude is waiting for you" |
-| Continuation started | "In {project}, continuation started. {objective}" |
+| Loop started | "In {project}, loop started. {objective}" |
 | Each round | "In {project}, round N. Objective: {objective}" |
-| Check passed | "In {project}, check passed. Continuation complete." |
+| Check passed | "In {project}, check passed. Loop complete." |
 | Check failed | "In {project}, check failed. Keep working." |
-| Mission complete | "Mission complete. Continuations cleared." |
-| Paused | "In {project}, pausing as requested. Continuation cleared." |
+| Mission complete | "Mission complete." |
+| Paused | "In {project}, pausing as requested." |
 
-### Toggle announcements
+### Toggle speak
 
 \`\`\`bash
-# Turn off voice announcements
-hooked announcements off
+# Turn off voice
+hooked speak off
 
-# Turn on voice announcements
-hooked announcements on
+# Turn on voice
+hooked speak on
 
 # Check current status
-hooked announcements
+hooked speak
 \`\`\`
 
 ### SpeakEasy setup
@@ -181,16 +181,16 @@ Supported providers: ElevenLabs, OpenAI TTS, Azure, Google Cloud TTS, and more.
 
 ---
 
-## Continuations
+## Until Loops
 
-Continuations keep Claude working toward your goal. Two modes are available:
+Until loops keep Claude working toward your goal. Two modes are available:
 
 ### Manual Mode
 
 Keep Claude working toward a stated objective until you say stop.
 
 \`\`\`bash
-hooked continuations "refactor the authentication module"
+hooked until "refactor the authentication module"
 \`\`\`
 
 Claude will keep working, announcing each round, until you run \`hooked off\`.
@@ -200,27 +200,27 @@ Claude will keep working, announcing each round, until you run \`hooked off\`.
 Keep Claude working until a command passes.
 
 \`\`\`bash
-hooked continuations check "pnpm test"
-hooked continuations check "pnpm build"
-hooked continuations check "pnpm typecheck"
+hooked until check "pnpm test"
+hooked until check "pnpm build"
+hooked until check "pnpm typecheck"
 \`\`\`
 
 When Claude tries to stop:
 1. The hook runs your check command
 2. **If check fails** → Claude continues working
-3. **If check passes** → Continuation auto-clears, Claude stops
+3. **If check passes** → Loop auto-clears, Claude stops
 
 ### Session-Scoped Binding
 
-Continuations are bound to specific sessions:
+Until loops are bound to specific sessions:
 
 \`\`\`
-Terminal 1: hooked continuations "document modules"
+Terminal 1: hooked until "document modules"
             → Creates pending.json
 
 Session A:  Claude tries to stop
             → Claims pending → state/sessionA.json
-            → Speaks "Continuation started"
+            → Speaks "Loop started"
             → Blocks
 
 Session B:  Claude tries to stop
@@ -234,7 +234,7 @@ Session A:  User runs: hooked off
 
 ### Pausing vs Stopping
 
-- **\`hooked off\`** — Immediately clears all continuations
+- **\`hooked off\`** — Immediately clears all until loops
 - **\`hooked pause\`** — Gracefully stops after the current cycle completes
 
 ---
@@ -248,42 +248,42 @@ hooked status
 hooked s
 \`\`\`
 
-Show current announcements setting, pending continuations, and active sessions.
+Show current speak setting, pending until loops, and active sessions.
 
-### Announcements
+### Speak
 
 \`\`\`bash
-hooked announcements on       # Enable voice
-hooked announcements off      # Disable voice
-hooked announcements          # Show current status
-hooked a on                   # Short form
+hooked speak on       # Enable voice
+hooked speak off      # Disable voice
+hooked speak          # Show current status
+hooked sp on          # Short form
 \`\`\`
 
-### Continuations
+### Until
 
 \`\`\`bash
 # Manual mode - keep working toward objective
-hooked continuations "implement feature X"
-hooked c "implement feature X"
+hooked until "implement feature X"
+hooked u "implement feature X"
 
 # Check mode - keep working until command passes
-hooked continuations check "pnpm test"
-hooked c check "pnpm build"
+hooked until check "pnpm test"
+hooked u check "pnpm build"
 
-# Clear all continuations
-hooked continuations off
-hooked c off
+# Clear all until loops
+hooked until off
+hooked u off
 
 # Pause after next cycle
-hooked continuations pause
-hooked c pause
+hooked until pause
+hooked u pause
 \`\`\`
 
 ### Shortcuts
 
 \`\`\`bash
-hooked off      # Same as: hooked continuations off
-hooked pause    # Same as: hooked continuations pause
+hooked off      # Same as: hooked until off
+hooked pause    # Same as: hooked until pause
 \`\`\`
 
 ### Using the Slash Command
@@ -292,7 +292,7 @@ From within Claude Code:
 
 \`\`\`
 /hooked status
-/hooked continuations "my objective"
+/hooked until "my objective"
 /hooked off
 \`\`\`
 
@@ -323,7 +323,7 @@ Configuration is stored in \`~/.hooked/config.json\`:
 \`\`\`
 ~/.hooked/
 ├── config.json       # Configuration
-├── pending.json      # Pending continuation (waiting to be claimed)
+├── pending.json      # Pending until loop (waiting to be claimed)
 ├── pause             # Pause flag (if present, next cycle stops)
 ├── state/            # Session-bound state files
 │   ├── {sessionId}.json
@@ -341,7 +341,7 @@ Configuration is stored in \`~/.hooked/config.json\`:
 
 ## Troubleshooting
 
-### Voice announcements not working
+### Voice not working
 
 1. **Check SpeakEasy is installed:**
    \`\`\`bash
@@ -355,7 +355,7 @@ Configuration is stored in \`~/.hooked/config.json\`:
 
 3. **Check speak flag is enabled:**
    \`\`\`bash
-   hooked announcements
+   hooked speak
    \`\`\`
 
 4. **Check logs for errors:**
@@ -363,14 +363,14 @@ Configuration is stored in \`~/.hooked/config.json\`:
    tail -f ~/logs/claude-hooks/notification.log
    \`\`\`
 
-### Continuation not triggering
+### Until loop not triggering
 
 1. **Check status:**
    \`\`\`bash
    hooked status
    \`\`\`
 
-2. **Verify a pending continuation exists:**
+2. **Verify a pending loop exists:**
    \`\`\`bash
    cat ~/.hooked/pending.json
    \`\`\`
@@ -429,14 +429,14 @@ It doesn't modify Claude's behavior beyond what hooks are designed for.
 Yes. You can specify any command:
 
 \`\`\`bash
-hooked continuations check "npm test"
-hooked continuations check "yarn test"
-hooked continuations check "make test"
+hooked until check "npm test"
+hooked until check "yarn test"
+hooked until check "make test"
 \`\`\`
 
-### Can I have multiple continuations at once?
+### Can I have multiple until loops at once?
 
-Yes! Each Claude session gets its own continuation. Set a pending, it binds to the next session that stops.
+Yes! Each Claude session gets its own loop. Set a pending, it binds to the next session that stops.
 
 ### What happens if my check command hangs?
 
@@ -444,7 +444,7 @@ The check command has a timeout (60 seconds). If it hangs, it's treated as a fai
 
 ### Does it work with remote/SSH sessions?
 
-Voice announcements require local audio output. Continuations work anywhere Claude Code runs.
+Voice requires local audio output. Until loops work anywhere Claude Code runs.
 
 ### Can I customize the voice?
 
@@ -474,7 +474,7 @@ rm ~/.claude/commands/hooked.md
 
 ---
 
-**Default: OFF** — Continuations only activate when you explicitly set one. Voice announcements are always on (if SpeakEasy is configured).
+**Default: OFF** — Until loops only activate when you explicitly set one. Voice is always on (if SpeakEasy is configured).
 `
 
 export default function DocsPage() {

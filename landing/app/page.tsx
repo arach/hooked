@@ -73,7 +73,7 @@ function Hero() {
           className="text-base text-zinc-400 mb-10 max-w-xl mx-auto leading-relaxed"
         >
           A tiny utility for Anthropic's Claude Code CLI. Add voice alerts,
-          build-check loops, and custom continuation triggers.
+          build-check loops, and custom until triggers.
         </motion.p>
 
         <motion.div
@@ -168,22 +168,22 @@ function VoiceAlertDemo() {
   )
 }
 
-// Continuation Demo
-const continuationExamples = {
+// Until Demo
+const untilExamples = {
   manual: {
-    command: '/hooked continuations "implement auth"',
+    command: '/hooked until "implement auth"',
     check: null,
     description: "Keep working toward objective",
     outcome: "Blocks until you run /hooked off",
   },
   test: {
-    command: '/hooked continuations check "pnpm test"',
+    command: '/hooked until check "pnpm test"',
     check: "pnpm test",
     description: "Keep working until tests pass",
     outcome: "Auto-completes when check succeeds",
   },
   build: {
-    command: '/hooked continuations check "pnpm build"',
+    command: '/hooked until check "pnpm build"',
     check: "pnpm build",
     description: "Keep working until build succeeds",
     outcome: "Auto-completes when check succeeds",
@@ -191,14 +191,14 @@ const continuationExamples = {
   off: {
     command: "/hooked off",
     check: null,
-    description: "Clear all continuations",
+    description: "Clear all until loops",
     outcome: "Mission complete announcement",
   },
 }
 
-function ContinuationDemo() {
-  const [activeExample, setActiveExample] = useState<keyof typeof continuationExamples>("manual")
-  const example = continuationExamples[activeExample]
+function UntilDemo() {
+  const [activeExample, setActiveExample] = useState<keyof typeof untilExamples>("manual")
+  const example = untilExamples[activeExample]
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
@@ -249,12 +249,12 @@ function ContinuationDemo() {
         {/* Voice announcements */}
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
           <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
-            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Voice Announcements</span>
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Voice</span>
           </div>
           <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs text-zinc-400 space-y-2">
-            <p><span className="text-green-400">→</span> "Continuation started. {activeExample === 'manual' ? 'implement auth' : example.check}"</p>
+            <p><span className="text-green-400">→</span> "Loop started. {activeExample === 'manual' ? 'implement auth' : example.check}"</p>
             <p><span className="text-sky-400">→</span> "Round 2. Objective: ..."</p>
-            <p><span className="text-orange-400">→</span> "Mission complete. Continuations cleared."</p>
+            <p><span className="text-orange-400">→</span> "Mission complete."</p>
           </div>
         </div>
       </div>
@@ -263,10 +263,10 @@ function ContinuationDemo() {
         <h2 className="text-2xl font-bold tracking-tight">Autonomous loops.</h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
           Keep Claude working toward an objective. Set a goal or a check command—Claude
-          continues until it's done, with voice announcements at each round.
+          continues until it's done, with voice at each round.
         </p>
         <div className="flex flex-wrap gap-2 pt-4">
-          {(Object.keys(continuationExamples) as Array<keyof typeof continuationExamples>).map((key) => (
+          {(Object.keys(untilExamples) as Array<keyof typeof untilExamples>).map((key) => (
             <button
               key={key}
               onClick={() => setActiveExample(key)}
@@ -294,9 +294,9 @@ function Features() {
           <div className="text-sky-500">
             <Volume2 size={18} />
           </div>
-          <h4 className="text-sm font-bold">Voice Announcements</h4>
+          <h4 className="text-sm font-bold">Voice</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
-            Hear when Claude needs you, starts a continuation, completes a round, or finishes a mission.
+            Hear when Claude needs you, starts a loop, completes a round, or finishes a mission.
           </p>
         </div>
         <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
@@ -305,7 +305,7 @@ function Features() {
           </div>
           <h4 className="text-sm font-bold">Slash Commands</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
-            <code className="text-sky-400">/hooked continuations</code> to start, <code className="text-sky-400">/hooked off</code> to stop.
+            <code className="text-sky-400">/hooked until</code> to start, <code className="text-sky-400">/hooked off</code> to stop.
           </p>
         </div>
         <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
@@ -314,7 +314,7 @@ function Features() {
           </div>
           <h4 className="text-sm font-bold">Zero Config</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
-            Run <code className="text-sky-400">pnpm run hooked:init</code> once. Voice + continuations ready to go.
+            Run <code className="text-sky-400">pnpm run hooked:init</code> once. Voice + until loops ready to go.
           </p>
         </div>
       </div>
@@ -335,7 +335,7 @@ function SessionScopedFeature() {
             Different objectives.<br />Different sessions.
           </h2>
           <p className="text-zinc-400 text-sm leading-relaxed">
-            Run multiple Claude Code sessions with unique continuation objectives.
+            Run multiple Claude Code sessions with unique until objectives.
             One documents your codebase. Another fixes bugs. A third writes tests.
             <span className="text-white font-medium"> They never interfere.</span>
           </p>
@@ -346,7 +346,7 @@ function SessionScopedFeature() {
               </div>
               <div>
                 <span className="text-zinc-300">Set a pending objective:</span>
-                <code className="ml-2 text-sky-400 text-xs">/hooked continuations "Document API"</code>
+                <code className="ml-2 text-sky-400 text-xs">/hooked until "Document API"</code>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -510,7 +510,7 @@ export default function Home() {
         {/* Demo Sections */}
         <section className="py-20 px-6 max-w-5xl mx-auto space-y-24">
           <VoiceAlertDemo />
-          <ContinuationDemo />
+          <UntilDemo />
         </section>
 
         <SessionScopedFeature />

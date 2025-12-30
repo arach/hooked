@@ -98,16 +98,16 @@ async function main(): Promise<void> {
       meta: { objective: pending.objective, check: pending.check }
     })
     const goal = pending.mode === 'manual' ? pending.objective : pending.check
-    await speak(`In ${project}, continuation started. ${goal}`)
-    console.error(`[hooked:stop] Claimed pending continuation for session ${sessionId}`)
+    await speak(`In ${project}, loop started. ${goal}`)
+    console.error(`[hooked:stop] Claimed pending loop for session ${sessionId}`)
   }
 
   // Step 2: Check for bound session
   const state = continuation.getSession(sessionId)
 
   if (!state) {
-    // No continuation for this session - approve normally
-    output({ decision: 'approve', reason: 'No continuation active' })
+    // No loop for this session - approve normally
+    output({ decision: 'approve', reason: 'No loop active' })
     return
   }
 
@@ -121,7 +121,7 @@ async function main(): Promise<void> {
       event: 'paused',
       evaluator: state.mode
     })
-    await speak(`In ${project}, pausing as requested. Continuation cleared.`)
+    await speak(`In ${project}, pausing as requested.`)
     output({ decision: 'approve', reason: 'Paused by user request' })
     return
   }
@@ -139,7 +139,7 @@ async function main(): Promise<void> {
         evaluator: 'check',
         reason: 'Check passed'
       })
-      await speak(`In ${project}, check passed. Continuation complete.`)
+      await speak(`In ${project}, check passed. Loop complete.`)
       output({ decision: 'approve', reason: 'Check passed' })
     } else {
       log.event({
