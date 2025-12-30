@@ -36,7 +36,22 @@
       "Bash(HOOKED_LOG_FILE=true node --loader tsx ~/.claude/hooks/notification.ts test:*)",
       "Bash(HOOKED_LOG_FILE=true node --import tsx:*)",
       "Bash(chmod:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "WebFetch(domain:x.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm run hooked:init:*)",
+      "Bash(pnpm install)",
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:diffs.com)",
+      "Skill(ship)",
+      "Bash(node scripts/generate-og.mjs:*)",
+      "Bash(node /Users/arach/dev/hooked/landing/scripts/generate-og.mjs:*)",
+      "Bash(node_modules/.bin/tsx:*)",
+      "Bash(~/.hooked/node_modules/.bin/tsx:*)",
+      "Bash(tree:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }

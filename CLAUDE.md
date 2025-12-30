@@ -4,140 +4,129 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Node.js TypeScript project for handling Claude Code hooks and notifications. It creates a notification system that processes payloads from stdin, logs them, copies to clipboard, and provides text-to-speech feedback.
+A TypeScript toolkit for Claude Code hooks. Voice notifications via SpeakEasy and smart continuation presets that keep Claude working until tests pass, build succeeds, or you say stop.
 
 ## Architecture
 
-The project is structured with a main hooks directory containing:
-
-- `notification.ts` - Main notification handler that processes Claude Code hook payloads
-- `test-notification.ts` - Test script to validate the notification system
-
-### Key Components
-
-**Notification Handler (`notification.ts`)**
-- Reads notification type from command line arguments
-- Processes JSON payloads from stdin
-- Structured logging with Winston to `~/logs/claude-hooks/notification.log`
-- Clipboard integration using `pbcopy`
-- Text-to-speech using `speakeasy` library with ElevenLabs provider
-- Project name extraction from transcript paths for contextual speech messages
-- Intelligent message processing for natural speech output
-
-**Test System (`test-notification.ts`)**
-- Simulates notification flow with test payloads
-- Validates the notification pipeline end-to-end
-- Uses realistic test data matching expected Claude Code hook payloads
+```
+src/
+├── cli/
+│   ├── index.ts       # Main CLI entry (init wizard + command dispatch)
+│   └── commands.ts    # Runtime commands (continue, status, presets)
+├── core/
+│   ├── config.ts      # Config management (~/.hooked/config.json)
+│   ├── presets.ts     # Preset definitions (test, build, manual, etc.)
+│   ├── state.ts       # Session state management
+│   ├── log.ts         # Winston logging
+│   └── continuation.ts # Legacy continuation (kept for compatibility)
+├── stop/
+│   ├── handler.ts     # createStopHook factory
+│   ├── default-hook.ts # Default deployed hook
+│   ├── types.ts       # TypeScript types
+│   └── evaluators/    # Evaluator functions
+│       ├── iterations.ts   # maxIterations()
+│       ├── command.ts      # commandSucceeds(), testsPass(), etc.
+│       └── continuation.ts # continueUntil() - preset-based
+├── notification.ts    # Notification hook handler
+└── index.ts           # Main exports
+```
 
 ## Common Development Commands
 
 ```bash
-# Install dependencies (in hooks directory)
-cd hooks && npm install
+# CLI commands
+npx tsx src/cli/commands.ts status      # Show current state
+npx tsx src/cli/commands.ts test        # Enable test preset
+npx tsx src/cli/commands.ts build       # Enable build preset
+npx tsx src/cli/commands.ts manual      # Enable manual preset
+npx tsx src/cli/commands.ts off         # Disable continuation
 
-# Run notification handler (typically called by Claude Code hooks)
-echo '{"message": "Test message", "transcript_path": "/path/to/project"}' | npx tsx notification.ts hook-type
+# Test stop hook
+echo '{"session_id":"test","transcript_path":"/test"}' | npx tsx src/stop/default-hook.ts
 
-# Run test script
-npx tsx test-notification.ts
+# Run init wizard
+pnpm run hooked:init
 
-# Check logs
+# Watch logs
 tail -f ~/logs/claude-hooks/notification.log
+```
 
-# Watch logs in real-time
-tail -f ~/logs/claude-hooks/notification.log | grep -E "(INFO|ERROR|WARN)"
+## Continuation Presets
+
+The continuation system uses presets stored in `~/.hooked/config.json`:
+
+```json
+{
+  "activePreset": "test",
+  "flags": {
+    "speak": true,
+    "logging": true
+  }
+}
+```
+
+### Available Presets
+
+| Preset | Check | Description |
+|--------|-------|-------------|
+| `test` | `pnpm test` | Keep working until tests pass |
+| `build` | `pnpm build` | Keep working until build succeeds |
+| `typecheck` | `pnpm typecheck` | Keep working until types clean |
+| `lint` | `pnpm lint` | Keep working until lint passes |
+| `manual` | - | Keep working until explicitly stopped |
+
+### How It Works
+
+1. User runs `hooked test` - sets `activePreset: "test"` in config
+2. Claude works, tries to stop
+3. Stop hook runs the preset's check command (`pnpm test`)
+4. If check fails, hook returns `{"decision": "block"}` - Claude continues
+5. If check passes, hook returns `{"decision": "approve"}` and auto-disables preset
+
+## Key Files
+
+- `src/core/config.ts` - Read/write `~/.hooked/config.json`
+- `src/core/presets.ts` - Preset definitions and evaluation
+- `src/cli/commands.ts` - CLI implementation
+- `src/stop/evaluators/continuation.ts` - Preset-based evaluator
+
+## Testing
+
+```bash
+# Test CLI flow
+npx tsx src/cli/commands.ts test
+npx tsx src/cli/commands.ts status
+npx tsx src/cli/commands.ts off
+
+# Test stop hook with preset active
+npx tsx src/cli/commands.ts manual
+echo '{"session_id":"test","transcript_path":"/test","stop_hook_active":false}' | npx tsx src/stop/default-hook.ts
+# Should output: {"decision":"block","reason":"Continuation mode active - keep working"}
+
+# Test stop hook with no preset
+npx tsx src/cli/commands.ts off
+echo '{"session_id":"test","transcript_path":"/test","stop_hook_active":false}' | npx tsx src/stop/default-hook.ts
+# Should output: {"decision":"approve"}
 ```
 
 ## Dependencies
 
-- **winston**: Structured logging with file and console transports
-- **speakeasy**: Text-to-speech functionality with ElevenLabs integration
-- **@types/winston**: TypeScript definitions for Winston
+- **winston**: Structured logging
+- **@arach/speakeasy**: Text-to-speech via ElevenLabs
+- **@clack/prompts**: Interactive CLI prompts for init wizard
+- **tsx**: TypeScript execution
+- **zod**: Schema validation
 
-## Hook Integration & Execution
+## File Locations
 
-### Claude Code Hook System
-The notification system integrates with Claude Code's global hook system:
-
-**Global Hook Location**: `~/.claude/hooks/notification.ts`
-- This is the actual hook that Claude Code executes
-- Symlinked or copied from this project's `hooks/notification.ts`
-- Automatically triggered by Claude Code events
-
-**Local Development Version**: `./hooks/notification.ts`
-- Development and testing version in this repository
-- Should be kept in sync with the global hook
-
-### Hook Execution Flow
-1. Claude Code triggers hook with notification type and payload
-2. Hook receives notification type as first CLI argument
-3. JSON payload containing `message` and `transcript_path` is passed via stdin
-4. Notification handler processes, logs, copies to clipboard, and speaks
-
-### Testing the Hook System
-
-**Test Local Version**:
-```bash
-# Test the local notification handler
-cd hooks
-npx tsx test-notification.ts
-
-# Manual test with custom payload
-echo '{"message": "Test message", "transcript_path": "/path/to/project"}' | npx tsx notification.ts test-hook
 ```
+~/.hooked/
+├── config.json    # Active preset & flags
+├── state/         # Per-session state files
+├── src/           # Deployed source (copied during init)
+└── history/       # Event logs
 
-**Test Global Claude Code Hook**:
-```bash
-# Test the actual Claude Code hook
-echo '{"message": "Testing Claude Code hook", "transcript_path": "/Users/arach/dev/hooked"}' | npx tsx ~/.claude/hooks/notification.ts claude-hook
+~/.claude/
+├── settings.json  # Hook configuration
+└── hooks/         # Hook entry points
 ```
-
-**Verify Hook Integration**:
-```bash
-# Check if global hook exists
-ls -la ~/.claude/hooks/notification.ts
-
-# Compare local vs global versions
-diff ./hooks/notification.ts ~/.claude/hooks/notification.ts
-```
-
-## Logging & Monitoring
-
-### Log Locations
-- **Main Log File**: `~/logs/claude-hooks/notification.log`
-- **Log Directory**: `~/logs/claude-hooks/` (created automatically)
-- **Local Project Logs**: `./logs/` (for webhook router and other services)
-
-### Log Monitoring Commands
-```bash
-# Watch live notifications
-tail -f ~/logs/claude-hooks/notification.log
-
-# Filter by log level
-tail -f ~/logs/claude-hooks/notification.log | grep -E "(INFO|ERROR|WARN)"
-
-# Check recent notifications
-tail -20 ~/logs/claude-hooks/notification.log
-
-# Search for specific events
-grep "claude-hook" ~/logs/claude-hooks/notification.log
-
-# Monitor all logs in project
-tail -f ./logs/*.log
-```
-
-### Log Structure
-Each notification creates structured JSON logs with:
-- Timestamp
-- Notification type
-- Payload details
-- Processing steps (clipboard, speech, project extraction)
-- Error messages (if any)
-
-## Speech Message Processing
-
-The notification system includes intelligent message processing for natural speech output:
-- Extracts project names from transcript paths for contextual announcements
-- Transforms technical messages into natural speech patterns
-- Handles common Claude Code notification types with appropriate responses
-- Uses ElevenLabs TTS via `speakeasy` library

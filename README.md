@@ -1,220 +1,148 @@
-# 🎯 Hooked
+# hooked
 
-A simple, focused notification handler for Claude Code hooks.
+A TypeScript toolkit for Claude Code hooks. Voice notifications and smart continuation presets.
 
-## ✨ Features
+## Features
 
-- **🔊 Speech Notifications** - Converts Claude Code notifications into natural speech using ElevenLabs
-- **📝 Structured Logging** - Tracks all notifications with Winston to `~/logs/claude-hooks/notification.log`
-- **🎨 Smart Context** - Extracts project names from paths for personalized messages
-- **⚡️ Zero Config** - Automated deployment and setup
+- **Voice Notifications** - Know when Claude needs you via [SpeakEasy](https://github.com/arach/speakeasy)
+- **Continuation Presets** - Keep Claude working until tests pass, build succeeds, or you say stop
+- **Simple CLI** - `hooked test` to enable, `hooked off` to disable
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Bun](https://bun.sh) - Fast JavaScript runtime
-- [SpeakEasy](https://github.com/arach/speakeasy) - Configured with TTS provider (ElevenLabs recommended)
-
-### Installation
+## Quick Start
 
 ```bash
-# Clone and install
-git clone git@github.com:arach/hooked.git
-cd hooked
-bun install
-
-# Deploy to Claude Code
-bun run deploy
+git clone https://github.com/arach/hooked.git
+cd hooked && pnpm install
+pnpm run hooked:init
 ```
 
-That's it! The deployment script automatically:
-- Copies files to `~/.claude/hooks/`
-- Installs dependencies
-- Configures your `~/.claude/settings.json`
-- Sets up logging
+## Usage
 
-### Usage
-
-The notification handler runs automatically when Claude Code triggers hook events. Test it manually:
+### Continuation Presets
 
 ```bash
-# Run test suite
-bun test
+# Keep working until tests pass
+hooked test
 
-# Test specific notification
-echo '{"message": "Test message", "transcript_path": "/path/to/project"}' | bun src/notification.ts test
+# Keep working until build succeeds
+hooked build
 
-# Monitor logs
-tail -f ~/logs/claude-hooks/notification.log
+# Keep working until you say stop
+hooked manual
+
+# Back to normal (Claude stops when it wants)
+hooked off
+
+# Check current state
+hooked status
 ```
 
-## 🏗️ Project Structure
+### Available Presets
 
-```
-hooked/
-├── src/
-│   ├── notification.ts      # Main hook handler
-│   └── test.ts              # Test suite
-├── deploy.ts                # One-command deployment
-├── package.json             # Dependencies
-├── tsconfig.json            # TypeScript config (strict mode)
-└── .env.example             # Environment variables
-```
+| Preset | Check Command | Description |
+|--------|---------------|-------------|
+| `test` | `pnpm test` | Keep working until tests pass |
+| `build` | `pnpm build` | Keep working until build succeeds |
+| `typecheck` | `pnpm typecheck` | Keep working until types are clean |
+| `lint` | `pnpm lint` | Keep working until lint passes |
+| `manual` | - | Keep working until explicitly stopped |
 
-**Simple and focused** - Just the essentials for Claude Code hook notifications.
+### How It Works
 
-## 🔧 Configuration
+1. Run `hooked test` - enables the test preset
+2. Claude works on your task
+3. When Claude tries to stop, the hook runs `pnpm test`
+4. If tests fail, Claude keeps working
+5. When tests pass, continuation auto-disables
 
-### Environment Variables
+## Configuration
 
-Create a `.env` file (optional - defaults work out of the box):
-
-```bash
-# Enable file logging (enabled by default during deployment)
-HOOKED_LOG_FILE=true
-```
-
-### SpeakEasy Setup
-
-Configure SpeakEasy with your TTS provider and API keys. See the [SpeakEasy documentation](https://github.com/arach/speakeasy) for setup instructions.
-
-### Manual Hook Configuration
-
-The deploy script handles this automatically, but if needed:
+Config stored in `~/.hooked/config.json`:
 
 ```json
 {
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "HOOKED_LOG_FILE=true bun ~/.claude/hooks/notification.ts"
-          }
-        ]
-      }
-    ]
+  "activePreset": "test",
+  "flags": {
+    "speak": true,
+    "logging": true
   }
 }
 ```
 
-## 🎯 How It Works
+## Project Structure
 
-### Notification Flow
+```
+~/.hooked/
+├── src/           # Hook handlers
+├── state/         # Session state
+├── config.json    # Active preset & flags
+└── history/       # Event logs
 
-1. **Claude Code triggers hook** → Sends JSON payload via stdin
-2. **Parse & extract context** → Reads notification type, message, and project path
-3. **Multi-channel output**:
-   - 🔊 **Speak** - "In hooked, Claude needs your permission"
-   - 📝 **Log** - Structured JSON to `~/logs/claude-hooks/notification.log`
-   - 🧠 **Process** - Natural language transformation for TTS
-
-### Message Intelligence
-
-The system transforms technical notifications into conversational speech:
-
-```javascript
-// Input
-{ "message": "Claude Code is waiting for your input", "transcript_path": ".../-hooked/..." }
-
-// Output
-🔊 "In hooked, Claude is waiting for you"
+~/.claude/
+├── hooks/         # Deployed hooks
+└── settings.json  # Hook configuration
 ```
 
-## 📋 Supported Hooks
+## Stop Hook API
 
-| Hook Event | Status | Description |
-|-----------|--------|-------------|
-| **Notification** | ✅ Fully Supported | All Claude Code notification types |
-| **Stop** | ✅ Supported | Task completion notifications |
+For custom stop hooks:
 
-### Future Hooks (Roadmap)
+```typescript
+import { createStopHook, maxIterations, continueUntil } from 'hooked/stop'
 
-- **PreToolUse** - Validate tool calls before execution
-- **PostToolUse** - Log tool usage and results
-- **UserPromptSubmit** - Add context to prompts
-- **SessionStart** - Setup notifications
+const hook = createStopHook([
+  maxIterations(30),    // Safety limit
+  continueUntil(),      // Preset-based continuation
+])
 
-Want to contribute? Check the [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks.md) for payload schemas.
-
-## 🧪 Testing
-
-```bash
-# Run the test suite
-bun test
-
-# Test with custom payload
-echo '{"message": "Build completed", "transcript_path": "/Users/dev/my-project"}' | bun src/notification.ts build-complete
-
-# Check logs
-tail -20 ~/logs/claude-hooks/notification.log
-
-# Filter by level
-tail -f ~/logs/claude-hooks/notification.log | grep ERROR
+hook()
 ```
 
-## 🛠️ Development
+### Built-in Evaluators
+
+```typescript
+import {
+  maxIterations,     // Stop after N iterations
+  continueUntil,     // Preset-based (hooked test/build/etc)
+  commandSucceeds,   // Custom command check
+  testsPass,         // Alias for commandSucceeds('pnpm test')
+  buildSucceeds,     // Alias for commandSucceeds('pnpm build')
+} from 'hooked/stop'
+```
+
+## Voice Notifications
+
+Requires [SpeakEasy](https://github.com/arach/speakeasy) configured with a TTS provider:
 
 ```bash
-# Install dependencies
-bun install
+npm install -g @arach/speakeasy
+speakeasy config
+```
 
-# Run notification handler directly
-bun src/notification.ts test-message
+Notifications announce when Claude needs attention:
+- "In hooked, Claude needs your permission"
+- "In hooked, Claude is waiting for you"
+
+## Development
+
+```bash
+# Test the CLI
+npx tsx src/cli/commands.ts status
+npx tsx src/cli/commands.ts test
+npx tsx src/cli/commands.ts off
+
+# Test the stop hook
+echo '{"session_id":"test","transcript_path":"/test"}' | npx tsx src/stop/default-hook.ts
 
 # Watch logs
 tail -f ~/logs/claude-hooks/notification.log
-
-# Run tests
-bun test
 ```
 
-### Tech Stack
+## Resources
 
-- **Runtime**: Bun (fast, modern JavaScript runtime)
-- **Language**: TypeScript with strict mode enabled
-- **Logging**: Winston with file rotation and structured JSON
-- **TTS**: SpeakEasy library with ElevenLabs provider
-- **Deployment**: Automated script with safe settings merging
-
-## 📊 Log Format
-
-All notifications are logged with structured data:
-
-```json
-{
-  "timestamp": "2024-01-15T10:30:45.123Z",
-  "level": "INFO",
-  "message": "Notification script started",
-  "notificationType": "permission-request",
-  "projectName": "my-project",
-  "speechMessage": "In my project, Claude needs your permission"
-}
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit with gitmoji (`git commit -m '✨ Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-ISC License - See package.json for details.
-
-## 🔗 Resources
-
-- [Claude Code Documentation](https://code.claude.com/)
-- [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks.md)
-- [SpeakEasy Library](https://github.com/arach/speakeasy)
-- [Bun Runtime](https://bun.sh)
-- [Winston Logging](https://github.com/winstonjs/winston)
+- [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks)
+- [SpeakEasy TTS Library](https://github.com/arach/speakeasy)
 
 ---
 
-**Built with ❤️ for enhanced Claude Code workflows**
+**Default: OFF** - Continuation only activates when you explicitly enable a preset.

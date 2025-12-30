@@ -12,14 +12,16 @@ const speakEasy = new SpeakEasy({})
 export async function speak(message: string): Promise<void> {
   // Check if speak is enabled in config
   if (!config.getFlag('speak')) {
+    console.error('[hooked:speak] Speak disabled in config')
     return
   }
 
+  console.error(`[hooked:speak] Speaking: "${message}"`)
   try {
     await speakEasy.speak(message, { priority: 'high' })
+    console.error('[hooked:speak] Done speaking')
   } catch (error) {
-    // Silently fail if SpeakEasy isn't configured
-    console.error(`[hooked] Failed to speak: ${error instanceof Error ? error.message : String(error)}`)
+    console.error(`[hooked:speak] Failed: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 

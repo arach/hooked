@@ -20,7 +20,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "hooked:init": "npx tsx src/cli/index.ts",
+    "hooked:init": "npx tsx src/init.ts",
     "deploy": "bun run deploy.ts",
     "test": "bun src/test.ts",
     "test:notification": "bun src/test.ts"

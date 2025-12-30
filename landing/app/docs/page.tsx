@@ -11,18 +11,17 @@ import Link from "next/link"
 // Import the markdown content
 const docsContent = `# Hooked Documentation
 
-A hooks helper for Claude Code. Voice alerts when Claude needs you, continuation hooks that keep it working until done.
+Voice announcements and session-scoped continuations for Claude Code.
 
 ## Table of Contents
 
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Voice Alerts (SpeakEasy)](#voice-alerts-speakeasy)
-- [Continuation Presets](#continuation-presets)
+- [Voice Announcements](#voice-announcements)
+- [Continuations](#continuations)
 - [CLI Reference](#cli-reference)
 - [Configuration](#configuration)
-- [API Reference](#api-reference)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
 
@@ -36,22 +35,31 @@ A hooks helper for Claude Code. Voice alerts when Claude needs you, continuation
 2. **Premature stops** — Claude says "done" but tests are failing, build is broken, work isn't actually complete
 
 Hooked adds:
-- **Voice alerts** via SpeakEasy when Claude needs your attention
-- **Continuation hooks** that keep Claude working until your checks pass
+- **Voice announcements** via SpeakEasy when Claude needs your attention
+- **Session-scoped continuations** that keep Claude working toward your objective
 
 ### How It Works
 
 Hooked installs [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) that intercept events:
 
-- **Notification hooks** — Trigger voice alerts on permission requests, errors, or when Claude is waiting
-- **Stop hooks** — Run your checks (tests, build, typecheck) when Claude tries to stop. If checks fail, Claude keeps working.
+- **Notification hooks** — Trigger voice announcements on permission requests, errors, or when Claude is waiting
+- **Stop hooks** — Evaluate whether Claude should continue working based on your objective or check command
+
+### Key Feature: Session-Scoped Continuations
+
+Continuations are bound to specific Claude sessions using a "lazy binding" pattern:
+
+1. You set a pending continuation (objective or check command)
+2. The next Claude session that tries to stop claims it
+3. That session keeps working until the objective is complete or check passes
+4. Other sessions are unaffected
 
 ### Requirements
 
 - [Claude Code](https://claude.ai/code) installed and configured
 - Node.js 18+
 - macOS or Linux
-- (Optional) [SpeakEasy](https://github.com/arach/speakeasy) for voice alerts
+- (Optional) [SpeakEasy](https://github.com/arach/speakeasy) for voice announcements
 
 ---
 
@@ -78,10 +86,11 @@ pnpm run hooked:init
 
 This will:
 - Create the \`~/.hooked/\` directory structure
-- Install hooks to \`~/.claude/hooks/\`
+- Copy source files to \`~/.hooked/src/\`
 - Configure Claude Code's \`settings.json\` with hook definitions
+- Install the \`/hooked\` slash command
 
-### 4. (Optional) Set up SpeakEasy for voice alerts
+### 4. (Optional) Set up SpeakEasy for voice announcements
 
 \`\`\`bash
 npm install -g @arach/speakeasy
@@ -94,26 +103,26 @@ Follow the prompts to configure your TTS provider (ElevenLabs recommended).
 
 ## Quick Start
 
-### Enable a continuation preset
+### Start a continuation
 
 \`\`\`bash
-# Keep Claude working until tests pass
-hooked test
+# Keep Claude working toward an objective
+hooked continuations "implement the auth system"
 
-# Check current status
-hooked status
+# Or keep working until a command passes
+hooked continuations check "pnpm test"
 \`\`\`
 
 ### What happens next
 
-1. You give Claude a task
-2. Claude works on it
-3. When Claude tries to stop, the hook runs \`pnpm test\`
-4. If tests fail → Claude gets a prompt to keep working
-5. If tests pass → Claude stops (actually done)
-6. Preset auto-disables after success
+1. You set a pending continuation
+2. Next time Claude tries to stop, it claims the continuation
+3. Voice announces: "Continuation started. implement the auth system"
+4. Claude keeps working, announcing each round: "Round 2. Objective: implement the auth system"
+5. When you're satisfied, run \`hooked off\`
+6. Voice announces: "Mission complete. Continuations cleared."
 
-### Disable when done
+### End the continuation
 
 \`\`\`bash
 hooked off
@@ -121,34 +130,35 @@ hooked off
 
 ---
 
-## Voice Alerts (SpeakEasy)
+## Voice Announcements
 
-Voice alerts notify you audibly when Claude needs attention. No more missed permission prompts.
+Voice announcements notify you audibly when Claude needs attention or continuation state changes.
 
-### What triggers alerts
+### What triggers announcements
 
 | Event | Voice Message |
 |-------|---------------|
 | Permission request | "In {project}, Claude needs your permission" |
 | Waiting for input | "In {project}, Claude is waiting for you" |
-| Error occurred | "In {project}, Claude encountered an error" |
+| Continuation started | "In {project}, continuation started. {objective}" |
+| Each round | "In {project}, round N. Objective: {objective}" |
+| Check passed | "In {project}, check passed. Continuation complete." |
+| Check failed | "In {project}, check failed. Keep working." |
+| Mission complete | "Mission complete. Continuations cleared." |
+| Paused | "In {project}, pausing as requested. Continuation cleared." |
 
-### Configuration
-
-Voice alerts are enabled by default. To disable:
+### Toggle announcements
 
 \`\`\`bash
-# Edit ~/.hooked/config.json
-{
-  "flags": {
-    "speak": false
-  }
-}
+# Turn off voice announcements
+hooked announcements off
+
+# Turn on voice announcements
+hooked announcements on
+
+# Check current status
+hooked announcements
 \`\`\`
-
-### Customizing messages
-
-Messages are defined in \`~/.hooked/src/notification.ts\`. The \`{project}\` placeholder is automatically replaced with the current project name (extracted from the transcript path).
 
 ### SpeakEasy setup
 
@@ -171,106 +181,119 @@ Supported providers: ElevenLabs, OpenAI TTS, Azure, Google Cloud TTS, and more.
 
 ---
 
-## Continuation Presets
+## Continuations
 
-Presets define what "done" means. Instead of Claude stopping when it feels done, it stops when your checks pass.
+Continuations keep Claude working toward your goal. Two modes are available:
 
-### Available presets
+### Manual Mode
 
-| Preset | Command | Check | Description |
-|--------|---------|-------|-------------|
-| \`test\` | \`hooked test\` | \`pnpm test\` | Keep working until tests pass |
-| \`build\` | \`hooked build\` | \`pnpm build\` | Keep working until build succeeds |
-| \`typecheck\` | \`hooked typecheck\` | \`pnpm typecheck\` | Keep working until types are clean |
-| \`lint\` | \`hooked lint\` | \`pnpm lint\` | Keep working until lint passes |
-| \`manual\` | \`hooked manual\` | (none) | Keep working until you say stop |
-
-### How presets work
-
-When a preset is active:
-
-1. Claude attempts to stop (sends a stop signal)
-2. The stop hook intercepts this
-3. Hook runs the preset's check command
-4. **If check fails**: Hook returns \`{ "decision": "block" }\` with a continuation prompt
-5. **If check passes**: Hook returns \`{ "decision": "approve" }\` and auto-disables the preset
-6. Claude either continues working or stops
-
-### Custom check commands
-
-You can specify a custom command:
+Keep Claude working toward a stated objective until you say stop.
 
 \`\`\`bash
-hooked test "npm run test:unit"
-hooked build "make build"
+hooked continuations "refactor the authentication module"
 \`\`\`
 
-### Continuation prompts
+Claude will keep working, announcing each round, until you run \`hooked off\`.
 
-When checks fail, Claude receives a prompt telling it what to do:
+### Check Mode
 
-| Preset | Continuation Prompt |
-|--------|---------------------|
-| test | "Tests failed. Read the errors, fix the code, and run tests again." |
-| build | "Build failed. Fix the errors and rebuild." |
-| typecheck | "Type errors found. Fix them and run typecheck again." |
-| manual | "Keep going. Do not stop until I tell you to." |
+Keep Claude working until a command passes.
 
-### Safety limits
+\`\`\`bash
+hooked continuations check "pnpm test"
+hooked continuations check "pnpm build"
+hooked continuations check "pnpm typecheck"
+\`\`\`
 
-To prevent infinite loops, there's a maximum iteration count (default: 30). After 30 failed attempts, the hook allows Claude to stop regardless of check status.
+When Claude tries to stop:
+1. The hook runs your check command
+2. **If check fails** → Claude continues working
+3. **If check passes** → Continuation auto-clears, Claude stops
+
+### Session-Scoped Binding
+
+Continuations are bound to specific sessions:
+
+\`\`\`
+Terminal 1: hooked continuations "document modules"
+            → Creates pending.json
+
+Session A:  Claude tries to stop
+            → Claims pending → state/sessionA.json
+            → Speaks "Continuation started"
+            → Blocks
+
+Session B:  Claude tries to stop
+            → No pending, no state/sessionB.json
+            → Approves (unaffected)
+
+Session A:  User runs: hooked off
+            → Clears state/sessionA.json
+            → Speaks "Mission complete"
+\`\`\`
+
+### Pausing vs Stopping
+
+- **\`hooked off\`** — Immediately clears all continuations
+- **\`hooked pause\`** — Gracefully stops after the current cycle completes
 
 ---
 
 ## CLI Reference
 
-### \`hooked <preset> [command]\`
-
-Enable a continuation preset.
-
-\`\`\`bash
-hooked test              # Use default: pnpm test
-hooked test "npm test"   # Use custom command
-hooked build             # Use default: pnpm build
-hooked manual            # No check, just keep going
-\`\`\`
-
-### \`hooked off\`
-
-Disable the active preset. Claude will stop normally.
-
-\`\`\`bash
-hooked off
-\`\`\`
-
-### \`hooked status\`
-
-Show current configuration and active preset.
+### Status
 
 \`\`\`bash
 hooked status
-# Output:
-# Active preset: test
-# Check command: pnpm test
-# Voice alerts: enabled
-# Iterations this session: 3
+hooked s
 \`\`\`
 
-### \`hooked config\`
+Show current announcements setting, pending continuations, and active sessions.
 
-Open the configuration file in your default editor.
+### Announcements
 
 \`\`\`bash
-hooked config
+hooked announcements on       # Enable voice
+hooked announcements off      # Disable voice
+hooked announcements          # Show current status
+hooked a on                   # Short form
 \`\`\`
 
-### \`hooked logs\`
-
-Tail the hook logs in real-time.
+### Continuations
 
 \`\`\`bash
-hooked logs
-# Equivalent to: tail -f ~/logs/claude-hooks/notification.log
+# Manual mode - keep working toward objective
+hooked continuations "implement feature X"
+hooked c "implement feature X"
+
+# Check mode - keep working until command passes
+hooked continuations check "pnpm test"
+hooked c check "pnpm build"
+
+# Clear all continuations
+hooked continuations off
+hooked c off
+
+# Pause after next cycle
+hooked continuations pause
+hooked c pause
+\`\`\`
+
+### Shortcuts
+
+\`\`\`bash
+hooked off      # Same as: hooked continuations off
+hooked pause    # Same as: hooked continuations pause
+\`\`\`
+
+### Using the Slash Command
+
+From within Claude Code:
+
+\`\`\`
+/hooked status
+/hooked continuations "my objective"
+/hooked off
 \`\`\`
 
 ---
@@ -281,14 +304,9 @@ Configuration is stored in \`~/.hooked/config.json\`:
 
 \`\`\`json
 {
-  "activePreset": "test",
-  "customCommand": null,
   "flags": {
     "speak": true,
     "logging": true
-  },
-  "limits": {
-    "maxIterations": 30
   }
 }
 \`\`\`
@@ -297,112 +315,33 @@ Configuration is stored in \`~/.hooked/config.json\`:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| \`activePreset\` | string \\| null | \`null\` | Currently active preset (test, build, typecheck, lint, manual) |
-| \`customCommand\` | string \\| null | \`null\` | Custom check command (overrides preset default) |
-| \`flags.speak\` | boolean | \`true\` | Enable voice alerts |
-| \`flags.logging\` | boolean | \`true\` | Enable file logging |
-| \`limits.maxIterations\` | number | \`30\` | Maximum continuation attempts before force-stop |
+| \`flags.speak\` | boolean | \`true\` | Enable voice announcements |
+| \`flags.logging\` | boolean | \`true\` | Enable event logging |
 
 ### File locations
 
 \`\`\`
 ~/.hooked/
-├── config.json      # Configuration
-├── state/           # Session state (iterations, etc.)
-├── history/         # Event logs
-└── src/             # Hook source files
+├── config.json       # Configuration
+├── pending.json      # Pending continuation (waiting to be claimed)
+├── pause             # Pause flag (if present, next cycle stops)
+├── state/            # Session-bound state files
+│   ├── {sessionId}.json
+│   └── ...
+├── logs/             # Event logs
+└── src/              # Hook source files
 
 ~/.claude/
-├── hooks/           # Deployed hook scripts
-└── settings.json    # Claude Code hook configuration
-\`\`\`
-
----
-
-## API Reference
-
-For advanced users who want to build custom stop hooks.
-
-### Creating a stop hook
-
-\`\`\`typescript
-import { createStopHook, maxIterations, continueUntil } from 'hooked/stop'
-
-const hook = createStopHook([
-  maxIterations(30),    // Safety limit
-  continueUntil(),      // Preset-based continuation
-])
-
-hook()
-\`\`\`
-
-### Built-in evaluators
-
-\`\`\`typescript
-import {
-  maxIterations,     // Stop after N iterations
-  continueUntil,     // Preset-based (hooked test/build/etc)
-  commandSucceeds,   // Custom command check
-  testsPass,         // Alias for commandSucceeds('pnpm test')
-  buildSucceeds,     // Alias for commandSucceeds('pnpm build')
-} from 'hooked/stop'
-\`\`\`
-
-### Evaluator interface
-
-\`\`\`typescript
-interface StopEvaluator {
-  name: string
-  evaluate: (context: StopContext) => Promise<EvaluatorResult>
-}
-
-interface StopContext {
-  sessionId: string
-  transcriptPath: string
-  iteration: number
-}
-
-interface EvaluatorResult {
-  decision: 'approve' | 'block' | 'continue'
-  reason?: string
-  prompt?: string  // Continuation prompt for Claude
-}
-\`\`\`
-
-### Custom evaluator example
-
-\`\`\`typescript
-import { createStopHook } from 'hooked/stop'
-
-const customEvaluator = {
-  name: 'coverage-check',
-  evaluate: async (context) => {
-    const result = await runCommand('pnpm test:coverage')
-    const coverage = parseCoverage(result)
-
-    if (coverage < 80) {
-      return {
-        decision: 'block',
-        reason: \`Coverage is \${coverage}%, need 80%\`,
-        prompt: \`Test coverage is \${coverage}%. Add more tests to reach 80% coverage.\`
-      }
-    }
-
-    return { decision: 'approve' }
-  }
-}
-
-const hook = createStopHook([
-  maxIterations(20),
-  customEvaluator,
-])
+├── commands/
+│   └── hooked.md     # Slash command definition
+└── settings.json     # Claude Code hook configuration
 \`\`\`
 
 ---
 
 ## Troubleshooting
 
-### Voice alerts not working
+### Voice announcements not working
 
 1. **Check SpeakEasy is installed:**
    \`\`\`bash
@@ -416,7 +355,7 @@ const hook = createStopHook([
 
 3. **Check speak flag is enabled:**
    \`\`\`bash
-   cat ~/.hooked/config.json | grep speak
+   hooked announcements
    \`\`\`
 
 4. **Check logs for errors:**
@@ -424,17 +363,16 @@ const hook = createStopHook([
    tail -f ~/logs/claude-hooks/notification.log
    \`\`\`
 
-### Continuation hooks not triggering
+### Continuation not triggering
 
-1. **Check a preset is active:**
+1. **Check status:**
    \`\`\`bash
    hooked status
    \`\`\`
 
-2. **Verify hooks are installed:**
+2. **Verify a pending continuation exists:**
    \`\`\`bash
-   ls ~/.claude/hooks/
-   cat ~/.claude/settings.json | grep hooks
+   cat ~/.hooked/pending.json
    \`\`\`
 
 3. **Re-run setup:**
@@ -442,9 +380,11 @@ const hook = createStopHook([
    pnpm run hooked:init
    \`\`\`
 
+4. **Restart Claude Code session** (hooks are loaded at session start)
+
 ### Claude keeps working forever
 
-1. **Check iteration count:**
+1. **Check if there's an active session:**
    \`\`\`bash
    hooked status
    \`\`\`
@@ -454,21 +394,21 @@ const hook = createStopHook([
    hooked off
    \`\`\`
 
-3. **Check if tests are actually failing:**
+3. **For check mode, verify your command:**
    \`\`\`bash
-   pnpm test
+   pnpm test  # Does it actually pass?
    \`\`\`
 
 ### Hook errors in Claude Code
 
 1. **Check hook logs:**
    \`\`\`bash
-   hooked logs
+   tail -f ~/logs/claude-hooks/notification.log
    \`\`\`
 
-2. **Test hook manually:**
+2. **Test stop hook manually:**
    \`\`\`bash
-   echo '{"session_id":"test","transcript_path":"/test"}' | npx tsx ~/.hooked/src/stop/default-hook.ts
+   echo '{"session_id":"test","transcript_path":"/test"}' | ~/.hooked/node_modules/.bin/tsx ~/.hooked/src/stop-hook.ts
    \`\`\`
 
 ---
@@ -479,32 +419,32 @@ const hook = createStopHook([
 
 Yes. Hooked only adds hooks that:
 - Read events (notifications)
-- Run your own commands (tests, build)
+- Run your own commands (for check mode)
 - Return continue/stop decisions
 
-It doesn't modify Claude's behavior beyond what hooks are designed for. The safety limit prevents infinite loops.
+It doesn't modify Claude's behavior beyond what hooks are designed for.
 
 ### Does it work with other package managers?
 
 Yes. You can specify any command:
 
 \`\`\`bash
-hooked test "npm test"
-hooked test "yarn test"
-hooked test "make test"
+hooked continuations check "npm test"
+hooked continuations check "yarn test"
+hooked continuations check "make test"
 \`\`\`
 
-### Can I use multiple presets at once?
+### Can I have multiple continuations at once?
 
-No, only one preset can be active at a time. The last one you enable wins.
+Yes! Each Claude session gets its own continuation. Set a pending, it binds to the next session that stops.
 
-### What happens if my tests hang?
+### What happens if my check command hangs?
 
-The check command has a timeout (default: 60 seconds). If it hangs, it's treated as a failure and Claude continues working.
+The check command has a timeout (60 seconds). If it hangs, it's treated as a failure and Claude continues working.
 
 ### Does it work with remote/SSH sessions?
 
-Voice alerts require a local audio output. Continuation hooks work anywhere Claude Code runs.
+Voice announcements require local audio output. Continuations work anywhere Claude Code runs.
 
 ### Can I customize the voice?
 
@@ -513,14 +453,14 @@ Yes, through SpeakEasy. Run \`speakeasy config\` to choose different voices, pro
 ### How do I uninstall?
 
 \`\`\`bash
-# Remove hooks from Claude Code
-rm -rf ~/.claude/hooks/hooked*
-
-# Remove hooked config
+# Remove hooked files
 rm -rf ~/.hooked
 
-# Remove the repo
-rm -rf /path/to/hooked
+# Remove slash command
+rm ~/.claude/commands/hooked.md
+
+# Remove hook configuration from ~/.claude/settings.json
+# (edit manually to remove the hooks entries)
 \`\`\`
 
 ---
@@ -534,7 +474,7 @@ rm -rf /path/to/hooked
 
 ---
 
-**Default: OFF** — Continuation only activates when you explicitly enable a preset. Voice alerts are always on (if SpeakEasy is configured).
+**Default: OFF** — Continuations only activate when you explicitly set one. Voice announcements are always on (if SpeakEasy is configured).
 `
 
 export default function DocsPage() {

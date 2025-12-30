@@ -169,32 +169,36 @@ function VoiceAlertDemo() {
 }
 
 // Continuation Demo
-const presetExamples = {
+const continuationExamples = {
+  manual: {
+    command: '/hooked continuations "implement auth"',
+    check: null,
+    description: "Keep working toward objective",
+    outcome: "Blocks until you run /hooked off",
+  },
   test: {
-    command: "hooked test",
+    command: '/hooked continuations check "pnpm test"',
     check: "pnpm test",
-    prompt: "Tests failed. Fix and retry.",
+    description: "Keep working until tests pass",
+    outcome: "Auto-completes when check succeeds",
   },
   build: {
-    command: "hooked build",
+    command: '/hooked continuations check "pnpm build"',
     check: "pnpm build",
-    prompt: "Build failed. Fix errors.",
+    description: "Keep working until build succeeds",
+    outcome: "Auto-completes when check succeeds",
   },
-  typecheck: {
-    command: "hooked typecheck",
-    check: "pnpm typecheck",
-    prompt: "Type errors. Fix them.",
-  },
-  manual: {
-    command: "hooked manual",
+  off: {
+    command: "/hooked off",
     check: null,
-    prompt: "Keep going until I say stop.",
+    description: "Clear all continuations",
+    outcome: "Mission complete announcement",
   },
 }
 
 function ContinuationDemo() {
-  const [activePreset, setActivePreset] = useState<keyof typeof presetExamples>("test")
-  const preset = presetExamples[activePreset]
+  const [activeExample, setActiveExample] = useState<keyof typeof continuationExamples>("manual")
+  const example = continuationExamples[activeExample]
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
@@ -202,70 +206,55 @@ function ContinuationDemo() {
         {/* Command */}
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
           <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
-            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Command</span>
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Slash Command</span>
           </div>
           <div className="p-4 font-[family-name:var(--font-geist-mono)] text-sm">
-            <span className="text-zinc-600">$ </span>
-            <span className="text-sky-400">{preset.command}</span>
+            <span className="text-sky-400">{example.command}</span>
           </div>
         </div>
 
-        {/* Config */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
-          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
-            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Stop Hook Config</span>
-            <span className="text-zinc-600 text-[10px]">~/.claude/settings.json</span>
-          </div>
-          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs text-zinc-400 space-y-1">
-            <p><span className="text-zinc-600">"Stop"</span>: [{"{"}</p>
-            {preset.check ? (
-              <>
-                <p className="pl-4"><span className="text-zinc-500">"command"</span>: <span className="text-green-400">"{preset.check}"</span>,</p>
-                <p className="pl-4"><span className="text-zinc-500">"onFail"</span>: <span className="text-orange-400">"{preset.prompt}"</span></p>
-              </>
-            ) : (
-              <p className="pl-4"><span className="text-zinc-500">"prompt"</span>: <span className="text-orange-400">"{preset.prompt}"</span></p>
-            )}
-            <p>{"}]"}</p>
-          </div>
-        </div>
-
-        {/* Outcome */}
+        {/* Description */}
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
           <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
-            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">When Claude Stops</span>
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">What happens</span>
           </div>
-          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-2">
+          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-3">
             <AnimatePresence mode="wait">
               <motion.div
-                key={activePreset}
+                key={activeExample}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="space-y-1.5"
+                className="space-y-3"
               >
-                {preset.check ? (
-                  <>
-                    <p className="text-zinc-500">Hook runs: <span className="text-zinc-300">{preset.check}</span></p>
-                    <div className="flex gap-6 pt-2">
-                      <div>
-                        <p className="text-zinc-600 text-[10px] mb-1">fails →</p>
-                        <p className="text-red-400">keep working</p>
-                      </div>
-                      <div>
-                        <p className="text-zinc-600 text-[10px] mb-1">passes →</p>
-                        <p className="text-green-400">done, stop</p>
-                      </div>
+                <p className="text-zinc-300">{example.description}</p>
+                {example.check ? (
+                  <div className="flex gap-6 pt-2">
+                    <div>
+                      <p className="text-zinc-600 text-[10px] mb-1">check fails →</p>
+                      <p className="text-orange-400">keep working</p>
                     </div>
-                  </>
+                    <div>
+                      <p className="text-zinc-600 text-[10px] mb-1">check passes →</p>
+                      <p className="text-green-400">mission complete</p>
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <p className="text-zinc-500">Hook blocks stop with prompt:</p>
-                    <p className="text-orange-400">"{preset.prompt}"</p>
-                    <p className="text-zinc-600 pt-2">Run <span className="text-sky-400">hooked off</span> to disable</p>
-                  </>
+                  <p className="text-zinc-500 pt-1">{example.outcome}</p>
                 )}
               </motion.div>
             </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Voice announcements */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
+          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
+            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Voice Announcements</span>
+          </div>
+          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs text-zinc-400 space-y-2">
+            <p><span className="text-green-400">→</span> "Continuation started. {activeExample === 'manual' ? 'implement auth' : example.check}"</p>
+            <p><span className="text-sky-400">→</span> "Round 2. Objective: ..."</p>
+            <p><span className="text-orange-400">→</span> "Mission complete. Continuations cleared."</p>
           </div>
         </div>
       </div>
@@ -273,16 +262,16 @@ function ContinuationDemo() {
       <div className="order-1 md:order-2 space-y-4">
         <h2 className="text-2xl font-bold tracking-tight">Autonomous loops.</h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Claude Code is powerful but reactive. Hooked provides stop hooks that keep the agent
-          working until your success condition is met.
+          Keep Claude working toward an objective. Set a goal or a check command—Claude
+          continues until it's done, with voice announcements at each round.
         </p>
         <div className="flex flex-wrap gap-2 pt-4">
-          {(Object.keys(presetExamples) as Array<keyof typeof presetExamples>).map((key) => (
+          {(Object.keys(continuationExamples) as Array<keyof typeof continuationExamples>).map((key) => (
             <button
               key={key}
-              onClick={() => setActivePreset(key)}
+              onClick={() => setActiveExample(key)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                activePreset === key
+                activeExample === key
                   ? "bg-sky-500 text-white"
                   : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
               }`}
@@ -305,18 +294,18 @@ function Features() {
           <div className="text-sky-500">
             <Volume2 size={18} />
           </div>
-          <h4 className="text-sm font-bold">Voice Alerts</h4>
+          <h4 className="text-sm font-bold">Voice Announcements</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
-            Never miss a permission prompt. Get audible notifications via SpeakEasy.
+            Hear when Claude needs you, starts a continuation, completes a round, or finishes a mission.
           </p>
         </div>
         <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
           <div className="text-sky-500">
             <Terminal size={18} />
           </div>
-          <h4 className="text-sm font-bold">Simple CLI</h4>
+          <h4 className="text-sm font-bold">Slash Commands</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
-            <code className="text-sky-400">hooked test</code> to enable, <code className="text-sky-400">hooked off</code> to disable. That's it.
+            <code className="text-sky-400">/hooked continuations</code> to start, <code className="text-sky-400">/hooked off</code> to stop.
           </p>
         </div>
         <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
@@ -325,7 +314,7 @@ function Features() {
           </div>
           <h4 className="text-sm font-bold">Zero Config</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
-            Works out of the box. Presets for test, build, typecheck, and manual mode.
+            Run <code className="text-sky-400">pnpm run hooked:init</code> once. Voice + continuations ready to go.
           </p>
         </div>
       </div>
@@ -356,8 +345,8 @@ function SessionScopedFeature() {
                 <span className="text-sky-400 text-xs">1</span>
               </div>
               <div>
-                <span className="text-zinc-300">Bind to a session:</span>
-                <code className="ml-2 text-sky-400 text-xs">hooked bind manual "Document API"</code>
+                <span className="text-zinc-300">Set a pending objective:</span>
+                <code className="ml-2 text-sky-400 text-xs">/hooked continuations "Document API"</code>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -365,8 +354,8 @@ function SessionScopedFeature() {
                 <span className="text-sky-400 text-xs">2</span>
               </div>
               <div>
-                <span className="text-zinc-300">Claude claims it automatically</span>
-                <span className="text-zinc-500 text-xs ml-2">(via stop hook)</span>
+                <span className="text-zinc-300">Claude claims it on first stop</span>
+                <span className="text-zinc-500 text-xs ml-2">(lazy binding)</span>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -375,7 +364,7 @@ function SessionScopedFeature() {
               </div>
               <div>
                 <span className="text-zinc-300">Other sessions unaffected</span>
-                <span className="text-zinc-500 text-xs ml-2">(unique session_id binding)</span>
+                <span className="text-zinc-500 text-xs ml-2">(bound to session_id)</span>
               </div>
             </div>
           </div>
@@ -393,8 +382,9 @@ function SessionScopedFeature() {
                 <span className="text-green-400 text-[10px]">active</span>
               </div>
               <div className="text-zinc-500 text-[10px] space-y-1">
-                <p>preset: <span className="text-zinc-300">manual</span></p>
+                <p>mode: <span className="text-zinc-300">manual</span></p>
                 <p>objective: <span className="text-zinc-300">"Document API"</span></p>
+                <p>iteration: <span className="text-zinc-300">3</span></p>
               </div>
             </div>
             <div className="p-3 rounded bg-zinc-900/50 border border-zinc-800">
@@ -403,8 +393,9 @@ function SessionScopedFeature() {
                 <span className="text-green-400 text-[10px]">active</span>
               </div>
               <div className="text-zinc-500 text-[10px] space-y-1">
-                <p>preset: <span className="text-zinc-300">test</span></p>
-                <p>objective: <span className="text-zinc-300">"Fix auth tests"</span></p>
+                <p>mode: <span className="text-zinc-300">check</span></p>
+                <p>check: <span className="text-zinc-300">"pnpm test"</span></p>
+                <p>iteration: <span className="text-zinc-300">1</span></p>
               </div>
             </div>
             <div className="p-3 rounded bg-zinc-900/50 border border-zinc-800 opacity-50">
@@ -413,7 +404,7 @@ function SessionScopedFeature() {
                 <span className="text-zinc-600 text-[10px]">completed</span>
               </div>
               <div className="text-zinc-600 text-[10px]">
-                <p>preset: build</p>
+                <p>mode: check</p>
               </div>
             </div>
           </div>
