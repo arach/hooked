@@ -62,8 +62,7 @@ function Hero() {
           transition={{ duration: 0.4 }}
           className="text-3xl md:text-5xl font-bold tracking-tight mb-6 leading-tight"
         >
-          Manage Claude Code hooks<br className="hidden md:block" />
-          without the boilerplate.
+          Smart hooks for Claude Code.
         </motion.h1>
 
         <motion.p
