@@ -16,19 +16,58 @@ const HOOKED_HOME = join(homedir(), '.hooked')
 const HOOKED_SRC = join(HOOKED_HOME, 'src')
 const HOOKED_STATE = join(HOOKED_HOME, 'state')
 const HOOKED_HISTORY = join(HOOKED_HOME, 'history')
+const CONFIG_FILE = join(HOOKED_HOME, 'config.json')
 
 // Claude's hooks - minimal stubs only
 const CLAUDE_DIR = join(homedir(), '.claude')
 const HOOKS_DIR = join(CLAUDE_DIR, 'hooks')
 const SETTINGS_FILE = join(CLAUDE_DIR, 'settings.json')
 
+// Saved preferences interface
+interface InitPreferences {
+  features: 'all' | 'notifications' | 'continuation' | 'custom'
+  hasSpeakeasy: boolean
+  commandGlobal: boolean
+  setupNotifications: boolean
+  setupContinuation: boolean
+}
+
+function loadPreferences(): InitPreferences | null {
+  try {
+    if (existsSync(CONFIG_FILE)) {
+      const config = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'))
+      if (config.initPreferences) {
+        return config.initPreferences as InitPreferences
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null
+}
+
+function savePreferences(prefs: InitPreferences): void {
+  let config: Record<string, unknown> = {}
+  try {
+    if (existsSync(CONFIG_FILE)) {
+      config = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'))
+    }
+  } catch {
+    // Start fresh
+  }
+  config.initPreferences = prefs
+  mkdirSync(HOOKED_HOME, { recursive: true })
+  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2))
+}
+
 // Check if this is a runtime command (not init)
 const args = process.argv.slice(2)
 const RUNTIME_COMMANDS = ['continue', 'c', 'status', 's', 'presets', 'p', 'help', '-h', '--help']
 const firstArg = args[0]
+const forceReconfigure = args.includes('--reconfigure') || args.includes('-r')
 
 // Handle runtime commands or shorthand preset names
-if (firstArg && (RUNTIME_COMMANDS.includes(firstArg) || !['init'].includes(firstArg))) {
+if (firstArg && (RUNTIME_COMMANDS.includes(firstArg) || !['init', '--reconfigure', '-r'].includes(firstArg))) {
   // Check if it might be a preset name shorthand
   if (firstArg && !RUNTIME_COMMANDS.includes(firstArg) && firstArg !== 'init') {
     // Could be `hooked test` as shorthand for `hooked continue test`
@@ -40,6 +79,18 @@ if (firstArg && (RUNTIME_COMMANDS.includes(firstArg) || !['init'].includes(first
 }
 
 async function main() {
+  // Check for saved preferences (skip interactive if already configured)
+  const savedPrefs = loadPreferences()
+  const isUpdate = savedPrefs && !forceReconfigure
+
+  if (isUpdate) {
+    // Quick update mode - use saved preferences
+    console.log('🎣 Updating hooked...')
+    await runInstall(savedPrefs)
+    return
+  }
+
+  // First time or --reconfigure: run interactive setup
   intro('🎣 Welcome to hooked')
 
   note(
@@ -70,7 +121,7 @@ It helps you:
 
   let setupNotifications = features === 'all' || features === 'notifications'
   let setupContinuation = features === 'all' || features === 'continuation'
-  let setupCommandGlobal = false
+  let hasSpeakeasy = false
 
   if (features === 'custom') {
     setupNotifications = await confirm({
@@ -108,16 +159,18 @@ Learn more: https://github.com/arach/speakeasy`,
       '🔊 Notifications'
     )
 
-    const hasSpeakeasy = await confirm({
+    const speakeasyAnswer = await confirm({
       message: 'Do you have SpeakEasy configured?',
       active: 'Yes',
       inactive: 'No',
     })
 
-    if (isCancel(hasSpeakeasy)) {
+    if (isCancel(speakeasyAnswer)) {
       cancel('Setup cancelled')
       process.exit(0)
     }
+
+    hasSpeakeasy = speakeasyAnswer as boolean
 
     if (!hasSpeakeasy) {
       note(
@@ -132,9 +185,25 @@ Notifications will still work (logged to ~/.hooked/history/).`,
     }
   }
 
+  // Build preferences object to pass to install and save
+  const prefs: InitPreferences = {
+    features: features as InitPreferences['features'],
+    hasSpeakeasy,
+    commandGlobal: false, // Will be set during install
+    setupNotifications,
+    setupContinuation,
+  }
+
+  await runInstall(prefs, true)
+}
+
+async function runInstall(prefs: InitPreferences, isFirstRun = false) {
+  let { setupNotifications, setupContinuation } = prefs
+  let setupCommandGlobal = prefs.commandGlobal
+
   // Install hooked
   const s = spinner()
-  s.start('Installing hooked...')
+  s.start('Copying files...')
 
   try {
     // Create ~/.hooked/ structure
@@ -162,7 +231,7 @@ Notifications will still work (logged to ~/.hooked/history/).`,
 
     // Create minimal stub hooks in ~/.claude/hooks/
     const stubSpinner = spinner()
-    stubSpinner.start('Creating hook stubs...')
+    stubSpinner.start('Configuring hooks...')
 
     // Read or create settings
     let settings: Record<string, unknown> = {}
@@ -206,10 +275,10 @@ Notifications will still work (logged to ~/.hooked/history/).`,
       cpSync(commandSrc, join(commandDir, 'hooked.md'))
     }
 
-    stubSpinner.stop('Done!')
+    stubSpinner.stop('Hooks configured!')
 
-    // Ask about installing the slash command globally
-    if (setupContinuation) {
+    // Only ask about global command on first run
+    if (isFirstRun && setupContinuation) {
       const installCommand = await select({
         message: 'Install /hooked command globally?',
         options: [
@@ -219,12 +288,20 @@ Notifications will still work (logged to ~/.hooked/history/).`,
       })
 
       if (!isCancel(installCommand) && installCommand === 'global') {
-        const globalCommandDir = join(CLAUDE_DIR, 'commands')
-        mkdirSync(globalCommandDir, { recursive: true })
-        cpSync(join(commandDir, 'hooked.md'), join(globalCommandDir, 'hooked.md'))
         setupCommandGlobal = true
       }
     }
+
+    // Install global command if needed
+    if (setupCommandGlobal) {
+      const globalCommandDir = join(CLAUDE_DIR, 'commands')
+      mkdirSync(globalCommandDir, { recursive: true })
+      cpSync(join(commandDir, 'hooked.md'), join(globalCommandDir, 'hooked.md'))
+    }
+
+    // Save preferences for future updates
+    prefs.commandGlobal = setupCommandGlobal
+    savePreferences(prefs)
 
   } catch (error) {
     s.stop('Installation failed')
@@ -232,47 +309,60 @@ Notifications will still work (logged to ~/.hooked/history/).`,
     process.exit(1)
   }
 
-  // Final summary - primary messaging, not steps
-  console.log('')
-  console.log('─────────────────────────────────────────────────────────')
-  console.log('')
-  console.log('  🎣 hooked is installed!')
-  console.log('')
-  console.log('  📁 ~/.hooked/')
-  console.log('     ├── src/       Edit to customize behavior')
-  console.log('     ├── state/     Runtime state')
-  console.log('     ├── history/   Event logs')
-  console.log('     └── commands/  Slash command definitions')
-  console.log('')
-  console.log('  🪝 ~/.claude/hooks/')
-  if (setupNotifications) {
-    console.log('     ├── hooked-notification.ts')
-  }
-  if (setupContinuation) {
-    console.log('     └── hooked-stop.ts')
-  }
-  console.log('')
-  if (setupContinuation) {
-    console.log('  🎮 Quick start:')
-    console.log('     /hooked continuation "your objective"')
-    console.log('     /hooked continuation --check "pnpm build"')
-    console.log('     /hooked continuation OFF')
+  // Output summary
+  if (isFirstRun) {
+    // Detailed summary for first run
+    console.log('')
+    console.log('─────────────────────────────────────────────────────────')
+    console.log('')
+    console.log('  🎣 hooked is installed!')
+    console.log('')
+    console.log('  📁 ~/.hooked/')
+    console.log('     ├── src/       Edit to customize behavior')
+    console.log('     ├── state/     Runtime state')
+    console.log('     ├── history/   Event logs')
+    console.log('     └── commands/  Slash command definitions')
+    console.log('')
+    console.log('  🪝 ~/.claude/hooks/')
+    if (setupNotifications) {
+      console.log('     ├── hooked-notification.ts')
+    }
+    if (setupContinuation) {
+      console.log('     └── hooked-stop.ts')
+    }
+    console.log('')
+    if (setupContinuation) {
+      console.log('  🎮 Quick start:')
+      console.log('     /hooked continuation "your objective"')
+      console.log('     /hooked continuation --check "pnpm build"')
+      console.log('     /hooked continuation OFF')
+      console.log('')
+    }
+    if (setupCommandGlobal) {
+      console.log('  📦 /hooked command installed globally')
+      console.log('     Works in all projects!')
+    } else {
+      console.log('  📦 Add /hooked command to a project:')
+      console.log('     cp ~/.hooked/commands/hooked.md .claude/commands/')
+    }
+    console.log('')
+    console.log('  💡 Re-run to update. Use --reconfigure to change settings.')
+    console.log('')
+    console.log('─────────────────────────────────────────────────────────')
+    console.log('')
+    outro('Learn more: https://github.com/arach/hooked')
+  } else {
+    // Brief summary for updates
+    console.log('')
+    console.log('✓ Files copied to ~/.hooked/src/')
+    console.log('✓ Hooks configured in ~/.claude/settings.json')
+    if (setupCommandGlobal) {
+      console.log('✓ /hooked command updated')
+    }
+    console.log('')
+    console.log('💡 Run with --reconfigure to change settings')
     console.log('')
   }
-  if (setupCommandGlobal) {
-    console.log('  📦 /hooked command installed globally')
-    console.log('     Works in all projects!')
-  } else {
-    console.log('  📦 Add /hooked command to a project:')
-    console.log('     cp ~/.hooked/commands/hooked.md .claude/commands/')
-  }
-  console.log('')
-  console.log('  ⚠️  Re-running init will overwrite ~/.hooked/')
-  console.log('')
-  console.log('─────────────────────────────────────────────────────────')
-  console.log('')
-
-  outro('Learn more: https://github.com/arach/hooked')
 }
 
 main().catch(console.error)

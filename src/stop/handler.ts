@@ -82,7 +82,7 @@ export function createStopHook(evaluators: Evaluator[], options: StopHookOptions
       })
 
       // Announce via SpeakEasy
-      speak.announceContinuation(claimed.activePreset, project, claimed.objective ?? undefined)
+      await speak.announceContinuation(claimed.activePreset, project, claimed.objective ?? undefined)
     }
 
     // If not actively continuing from a previous stop hook, just approve

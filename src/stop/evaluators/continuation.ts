@@ -23,7 +23,7 @@ import type { Evaluator } from '../types'
  * ])
  */
 export function continueUntil(): Evaluator {
-  return (ctx) => {
+  return async (ctx) => {
     const sessionId = ctx.input.session_id
 
     // Check session-specific preset first, then fall back to global
@@ -62,7 +62,7 @@ export function continueUntil(): Evaluator {
       }
 
       // Announce completion via SpeakEasy
-      speak.announceCompletion(activePresetName, ctx.project)
+      await speak.announceCompletion(activePresetName, ctx.project)
 
       return {
         shouldContinue: false,
