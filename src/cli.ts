@@ -22,6 +22,7 @@ import { log } from './core/log'
 import { project } from './core/project'
 import { alerts } from './core/alerts'
 import { history } from './core/history'
+import { startServer } from './web/server'
 
 const [, , command, ...args] = process.argv
 
@@ -47,6 +48,7 @@ hooked - Voice & until loops for Claude Code
 
 Commands:
   status                Show current state
+  web [port]            Open web dashboard (default: 3456)
 
 History:
   history [n]           Show recent events (default: 20)
@@ -67,13 +69,11 @@ Until:
 
 Examples:
   hooked status
+  hooked web
   hooked history 50
   hooked history export json > backup.json
-  hooked history prune 90
   hooked speak off
-  hooked until "implement auth system"
   hooked until check "pnpm test"
-  hooked off
 `)
 }
 
@@ -377,6 +377,13 @@ function printEvents(events: ReturnType<typeof history.getRecent>): void {
   }
 }
 
+async function handleWeb(): Promise<void> {
+  const port = args[0] ? parseInt(args[0], 10) : 3456
+  await startServer(port)
+  // Keep process alive
+  await new Promise(() => {})
+}
+
 // Main router
 async function main(): Promise<void> {
   switch (command) {
@@ -414,6 +421,11 @@ async function main(): Promise<void> {
     case 'history':
     case 'h':
       handleHistory()
+      break
+
+    case 'web':
+    case 'dashboard':
+      await handleWeb()
       break
 
     case 'help':
