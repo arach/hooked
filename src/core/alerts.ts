@@ -1,0 +1,113 @@
+/**
+ * Pending alerts tracking.
+ *
+ * Alerts are set on Notification hook and cleared on UserPromptSubmit.
+ * A background reminder process checks for stale alerts and re-announces.
+ */
+
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
+import { join } from 'path'
+import { homedir } from 'os'
+
+const HOOKED_HOME = join(homedir(), '.hooked')
+const ALERTS_FILE = join(HOOKED_HOME, 'pending-alerts.json')
+
+export interface PendingAlert {
+  sessionId: string
+  project: string
+  type: string           // 'permission', 'error', 'input', etc.
+  message: string
+  timestamp: string
+  reminders: number      // How many times we've reminded
+  reminderPid?: number   // PID of background reminder process
+}
+
+export type AlertsRegistry = Record<string, PendingAlert>  // keyed by sessionId
+
+function getAlerts(): AlertsRegistry {
+  if (!existsSync(ALERTS_FILE)) return {}
+  try {
+    return JSON.parse(readFileSync(ALERTS_FILE, 'utf-8'))
+  } catch {
+    return {}
+  }
+}
+
+function saveAlerts(alerts: AlertsRegistry): void {
+  if (Object.keys(alerts).length === 0) {
+    // Clean up file if no alerts
+    if (existsSync(ALERTS_FILE)) {
+      unlinkSync(ALERTS_FILE)
+    }
+    return
+  }
+  writeFileSync(ALERTS_FILE, JSON.stringify(alerts, null, 2))
+}
+
+export function setAlert(alert: Omit<PendingAlert, 'timestamp' | 'reminders'>): PendingAlert {
+  const alerts = getAlerts()
+  const fullAlert: PendingAlert = {
+    ...alert,
+    timestamp: new Date().toISOString(),
+    reminders: 0,
+  }
+  alerts[alert.sessionId] = fullAlert
+  saveAlerts(alerts)
+  return fullAlert
+}
+
+export function getAlert(sessionId: string): PendingAlert | null {
+  const alerts = getAlerts()
+  return alerts[sessionId] || null
+}
+
+export function getAllAlerts(): PendingAlert[] {
+  return Object.values(getAlerts())
+}
+
+export function clearAlert(sessionId: string): boolean {
+  const alerts = getAlerts()
+  if (!alerts[sessionId]) return false
+  delete alerts[sessionId]
+  saveAlerts(alerts)
+  return true
+}
+
+export function clearAllAlerts(): void {
+  saveAlerts({})
+}
+
+export function incrementReminder(sessionId: string): number {
+  const alerts = getAlerts()
+  if (!alerts[sessionId]) return 0
+  alerts[sessionId].reminders += 1
+  saveAlerts(alerts)
+  return alerts[sessionId].reminders
+}
+
+export function setReminderPid(sessionId: string, pid: number): void {
+  const alerts = getAlerts()
+  if (!alerts[sessionId]) return
+  alerts[sessionId].reminderPid = pid
+  saveAlerts(alerts)
+}
+
+export function getAlertAge(alert: PendingAlert): number {
+  return Date.now() - new Date(alert.timestamp).getTime()
+}
+
+export function getAlertAgeMinutes(alert: PendingAlert): number {
+  return Math.floor(getAlertAge(alert) / 60000)
+}
+
+export const alerts = {
+  set: setAlert,
+  get: getAlert,
+  getAll: getAllAlerts,
+  clear: clearAlert,
+  clearAll: clearAllAlerts,
+  incrementReminder,
+  setReminderPid,
+  getAge: getAlertAge,
+  getAgeMinutes: getAlertAgeMinutes,
+}

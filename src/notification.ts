@@ -1,10 +1,20 @@
 #!/usr/bin/env node
+/**
+ * Notification Hook
+ *
+ * Speaks notifications and tracks pending alerts for reminders.
+ * Spawns a background reminder process when an alert is set.
+ */
 
 import { homedir } from 'os';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { spawn } from 'child_process';
 import winston from 'winston';
-import { SpeakEasy } from '@arach/speakeasy';
+import { speak } from './core/speak';
+import { project } from './core/project';
+import { alerts } from './core/alerts';
+import { config } from './core/config';
 
 // Types
 interface NoOpLogger {
@@ -18,16 +28,12 @@ interface NotificationPayload {
   hook_event_name?: string;
   message?: string;
   transcript_path?: string;
+  session_id?: string;
   [key: string]: unknown;
 }
 
 const enableFileLogging = process.env.HOOKED_LOG_FILE === 'true';
 const logger: Logger = enableFileLogging ? createLogger() : createNoOpLogger();
-
-// Create SpeakEasy instance
-// Configuration is managed by SpeakEasy via ~/.config/speakeasy/settings.json
-// Run `speakeasy config` to set up providers and API keys
-const speakEasy = new SpeakEasy({});
 const notificationType = process.argv[2];
 
 logger.info('Notification script started', { notificationType });
@@ -53,39 +59,92 @@ async function main() {
   });
 
   try {
-    await speakNotification(parsedPayloadResult.payload);
+    await handleNotification(parsedPayloadResult.payload);
   } catch (error) {
-    logger.error('Failed to speak notification', { error: extractErrorMessage(error) });
+    logger.error('Failed to handle notification', { error: extractErrorMessage(error) });
   }
 }
 
-async function speakNotification(parsedPayload: NotificationPayload | null) {
+async function handleNotification(parsedPayload: NotificationPayload | null) {
   const hookEventName = parsedPayload?.hook_event_name;
   const message = parsedPayload?.message;
   const transcriptPath = parsedPayload?.transcript_path;
+  const sessionId = parsedPayload?.session_id;
 
-  logger.info('Processing transcript path', { transcriptPath, hookEventName });
+  logger.info('Processing notification', { transcriptPath, hookEventName, sessionId });
 
-  const projectName = deriveProjectName(transcriptPath);
-  if (transcriptPath) {
-    logger.info('Extracted project name from path', { projectName, originalPath: transcriptPath });
+  // Extract project info
+  const projectFolder = project.extractFolder(transcriptPath || '') || 'unknown';
+  const displayName = project.getDisplayNameFromFolder(projectFolder);
+
+  logger.info('Extracted project info', { projectFolder, displayName });
+
+  // Build and speak message
+  const speechMessage = buildSpeechMessage(displayName, hookEventName, message);
+  logger.info('Speaking', { speechMessage });
+
+  await speak(speechMessage);
+
+  // Track alert for reminders (if we have a session and alerts are enabled)
+  const alertConfig = config.getAlertConfig();
+  if (sessionId && alertConfig.enabled && hookEventName !== 'Stop') {
+    const alertType = categorizeAlert(hookEventName, message);
+
+    // Check if there's already an active reminder for this session
+    const existingAlert = alerts.get(sessionId);
+    const hasActiveReminder = existingAlert?.reminderPid != null;
+
+    // Set/update the pending alert
+    alerts.set({
+      sessionId,
+      project: displayName,
+      type: alertType,
+      message: message || hookEventName || 'Notification',
+    });
+
+    logger.info('Set pending alert', { sessionId, alertType, project: displayName });
+
+    // Only spawn reminder if there isn't one already running
+    if (!hasActiveReminder) {
+      spawnReminderProcess(sessionId);
+      logger.info('Spawned reminder process for session', { sessionId });
+    } else {
+      logger.info('Reminder already active for session, skipping spawn', { sessionId, pid: existingAlert.reminderPid });
+    }
   }
-
-  const speechMessage = buildSpeechMessage(projectName, hookEventName, message);
-  logger.info('Prepared speech message', {
-    originalMessage: message,
-    speechMessage,
-    projectName
-  });
-
-  await speakEasy.speak(speechMessage, {
-    priority: 'high'
-  });
-
-  logger.info(`SpeakEasy spoke: "${speechMessage}"`);
 
   // Print to console for hook feedback
   console.log(`🔊 ${speechMessage}`);
+}
+
+function categorizeAlert(hookEventName?: string, message?: string): string {
+  const msg = (message || '').toLowerCase();
+
+  if (msg.includes('permission')) return 'permission';
+  if (msg.includes('error') || msg.includes('failed')) return 'error';
+  if (msg.includes('waiting') || msg.includes('input')) return 'input';
+  if (hookEventName === 'PermissionRequest') return 'permission';
+
+  return 'notification';
+}
+
+function spawnReminderProcess(sessionId: string): void {
+  const tsxPath = join(homedir(), '.hooked', 'node_modules', '.bin', 'tsx');
+  const reminderScript = join(homedir(), '.hooked', 'src', 'reminder.ts');
+
+  // Spawn detached so it continues after this process exits
+  const child = spawn(tsxPath, [reminderScript, sessionId], {
+    detached: true,
+    stdio: 'ignore',
+  });
+
+  // Unref so this process can exit
+  child.unref();
+
+  // Track the PID
+  if (child.pid) {
+    alerts.setReminderPid(sessionId, child.pid);
+  }
 }
 
 function createLogger(): winston.Logger {
@@ -139,24 +198,6 @@ function parseNotificationPayload(rawPayload: string): { payload: NotificationPa
   } catch {
     return { payload: null, wasJson: false };
   }
-}
-
-function deriveProjectName(transcriptPath?: string): string {
-  if (!transcriptPath) {
-    return 'unknown project';
-  }
-
-  const dashedMatch = transcriptPath.match(/projects\/[^/]*-([^/]+)\//);
-  if (dashedMatch?.[1]) {
-    return dashedMatch[1].replace(/-/g, ' ');
-  }
-
-  const plainMatch = transcriptPath.match(/projects\/([^/]+)\//);
-  if (plainMatch?.[1]) {
-    return plainMatch[1].replace(/-/g, ' ').replace(/\./g, ' dot ');
-  }
-
-  return 'unknown project';
 }
 
 function buildSpeechMessage(projectName: string, hookEventName?: string, message?: string): string {

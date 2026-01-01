@@ -20,6 +20,7 @@ import { config, renderTemplate } from './core/config'
 import { speak } from './core/speak'
 import { log } from './core/log'
 import { project } from './core/project'
+import { alerts } from './core/alerts'
 
 const [, , command, ...args] = process.argv
 
@@ -68,15 +69,24 @@ function handleSpeak(): void {
   const value = args[0]?.toLowerCase()
 
   if (value === 'on' || value === 'true' || value === '1') {
-    config.setFlag('speak', true)
-    console.log('Speak: ON')
+    config.setVoiceEnabled(true)
+    console.log('Voice: ON')
   } else if (value === 'off' || value === 'false' || value === '0') {
-    config.setFlag('speak', false)
-    console.log('Speak: OFF')
+    config.setVoiceEnabled(false)
+    console.log('Voice: OFF')
+  } else if (value && !isNaN(parseFloat(value))) {
+    // Set volume (0.0 to 1.0)
+    const volume = parseFloat(value)
+    config.setVoiceVolume(volume)
+    console.log(`Voice volume: ${Math.round(volume * 100)}%`)
   } else {
-    const current = config.getFlag('speak')
-    console.log(`Speak: ${current ? 'ON' : 'OFF'}`)
-    console.log('\nUsage: hooked speak on|off')
+    const enabled = config.isVoiceEnabled()
+    const volume = config.getVoiceVolume()
+    console.log(`Voice: ${enabled ? 'ON' : 'OFF'}`)
+    console.log(`Volume: ${Math.round(volume * 100)}%`)
+    console.log('\nUsage:')
+    console.log('  hooked speak on|off    Toggle voice')
+    console.log('  hooked speak 0.5       Set volume (0.0-1.0)')
   }
 }
 
@@ -194,6 +204,7 @@ function handleStatus(): void {
   const activeSessions = continuation.getActiveSessions()
   const paused = continuation.isPaused()
   const registeredSessions = log.getAllSessions()
+  const pendingAlerts = alerts.getAll()
 
   console.log('=== Hooked Status ===\n')
 
@@ -209,10 +220,27 @@ function handleStatus(): void {
   }
   console.log()
 
-  // Speak section
-  console.log('Speak:')
-  console.log(`  Voice: ${cfg.flags.speak ? 'ON' : 'OFF'}`)
-  console.log(`  Logging: ${cfg.flags.logging ? 'ON' : 'OFF'}`)
+  // Voice section
+  console.log('Voice:')
+  console.log(`  Enabled: ${cfg.voice.enabled ? 'ON' : 'OFF'}`)
+  console.log(`  Volume: ${Math.round(cfg.voice.volume * 100)}%`)
+  console.log()
+
+  // Alerts section
+  console.log('Alerts:')
+  console.log(`  Reminders: ${cfg.alerts.enabled ? 'ON' : 'OFF'}`)
+  if (cfg.alerts.enabled) {
+    console.log(`  Remind every: ${cfg.alerts.reminderMinutes}m`)
+    console.log(`  Max reminders: ${cfg.alerts.maxReminders}`)
+    console.log(`  Escalate after: ${cfg.alerts.escalateAfter} reminders`)
+  }
+  if (pendingAlerts.length > 0) {
+    console.log(`  Pending (${pendingAlerts.length}):`)
+    for (const alert of pendingAlerts) {
+      const age = alerts.getAgeMinutes(alert)
+      console.log(`    ${alert.project}: ${alert.type} (${age}m, ${alert.reminders} reminders)`)
+    }
+  }
   console.log()
 
   // Until section

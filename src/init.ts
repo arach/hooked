@@ -160,6 +160,14 @@ async function runInstall(): Promise<void> {
     }],
   }]
 
+  // Configure user prompt submit hook (clears pending alerts)
+  hooks.UserPromptSubmit = [{
+    hooks: [{
+      type: 'command',
+      command: `${tsxBin} ${HOOKED_SRC}/user-prompt-submit.ts`,
+    }],
+  }]
+
   writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
   log('Configured hooks in ~/.claude/settings.json')
 
@@ -174,10 +182,17 @@ async function runInstall(): Promise<void> {
   const configFile = join(HOOKED_HOME, 'config.json')
   if (!existsSync(configFile)) {
     writeFileSync(configFile, JSON.stringify({
-      flags: {
-        speak: true,
-        logging: true,
+      voice: {
+        enabled: true,
+        volume: 1.0,
       },
+      alerts: {
+        enabled: true,
+        reminderMinutes: 5,
+        maxReminders: 3,
+        escalateAfter: 2,
+      },
+      logging: true,
       templates: {
         loopStarted: 'In {project}, loop started. {goal}',
         checkPassed: 'In {project}, check passed. Loop complete.',
@@ -185,6 +200,8 @@ async function runInstall(): Promise<void> {
         pausing: 'In {project}, pausing as requested.',
         manualRound: 'In {project}, round {round}. Objective: {objective}',
         missionComplete: 'Mission complete.',
+        alertReminder: 'Still waiting in {project}. {type}, {minutes} minutes.',
+        alertEscalation: 'Urgent! {project} needs attention. {type}, {minutes} minutes.',
       }
     }, null, 2))
     log('Created default config')

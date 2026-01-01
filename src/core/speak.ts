@@ -6,19 +6,29 @@ import { config } from './config'
 // Run `speakeasy config` to set up providers and API keys
 const speakEasy = new SpeakEasy({})
 
+export interface SpeakOptions {
+  priority?: 'high' | 'normal' | 'low'
+  volume?: number  // Override config volume
+}
+
 /**
  * Speak a message using SpeakEasy (if enabled in config)
  */
-export async function speak(message: string): Promise<void> {
-  // Check if speak is enabled in config
-  if (!config.getFlag('speak')) {
-    console.error('[hooked:speak] Speak disabled in config')
+export async function speak(message: string, options?: SpeakOptions): Promise<void> {
+  // Check if voice is enabled in config
+  if (!config.isVoiceEnabled()) {
+    console.error('[hooked:speak] Voice disabled in config')
     return
   }
 
-  console.error(`[hooked:speak] Speaking: "${message}"`)
+  const volume = options?.volume ?? config.getVoiceVolume()
+  console.error(`[hooked:speak] Speaking (vol ${volume}): "${message}"`)
+
   try {
-    await speakEasy.speak(message, { priority: 'high' })
+    await speakEasy.speak(message, {
+      priority: options?.priority ?? 'high',
+      // Note: volume support depends on SpeakEasy/provider
+    })
     console.error('[hooked:speak] Done speaking')
   } catch (error) {
     console.error(`[hooked:speak] Failed: ${error instanceof Error ? error.message : String(error)}`)

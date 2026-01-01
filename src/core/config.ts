@@ -9,13 +9,27 @@ export interface SpeakTemplates {
   pausing: string          // vars: {project}
   manualRound: string      // vars: {project}, {round}, {objective}
   missionComplete: string  // no vars
+  // Alert templates
+  alertReminder: string    // vars: {project}, {type}, {minutes}
+  alertEscalation: string  // vars: {project}, {type}, {minutes}
+}
+
+export interface AlertConfig {
+  enabled: boolean
+  reminderMinutes: number   // How long before first reminder
+  maxReminders: number      // Max reminders before giving up (0 = unlimited)
+  escalateAfter: number     // Escalate after N reminders (0 = never)
+}
+
+export interface VoiceConfig {
+  enabled: boolean
+  volume: number  // 0.0 to 1.0
 }
 
 export interface HookedConfig {
-  flags: {
-    speak: boolean
-    logging: boolean
-  }
+  voice: VoiceConfig
+  alerts: AlertConfig
+  logging: boolean
   templates: SpeakTemplates
 }
 
@@ -29,13 +43,26 @@ const DEFAULT_TEMPLATES: SpeakTemplates = {
   pausing: 'In {project}, pausing as requested.',
   manualRound: 'In {project}, round {round}. Objective: {objective}',
   missionComplete: 'Mission complete.',
+  alertReminder: 'Still waiting in {project}. {type}, {minutes} minutes.',
+  alertEscalation: 'Urgent! {project} needs attention. {type}, {minutes} minutes.',
+}
+
+const DEFAULT_VOICE: VoiceConfig = {
+  enabled: true,
+  volume: 1.0,
+}
+
+const DEFAULT_ALERTS: AlertConfig = {
+  enabled: true,
+  reminderMinutes: 5,    // Remind after 5 minutes
+  maxReminders: 3,       // Then stop nagging
+  escalateAfter: 2,      // Get urgent on 2nd reminder
 }
 
 const DEFAULT_CONFIG: HookedConfig = {
-  flags: {
-    speak: true,
-    logging: true,
-  },
+  voice: DEFAULT_VOICE,
+  alerts: DEFAULT_ALERTS,
+  logging: true,
   templates: DEFAULT_TEMPLATES,
 }
 
@@ -52,14 +79,26 @@ export function getConfig(): HookedConfig {
 
   try {
     const content = readFileSync(CONFIG_FILE, 'utf-8')
-    const parsed = JSON.parse(content) as Partial<HookedConfig>
+    const parsed = JSON.parse(content) as Partial<HookedConfig> & { flags?: { speak?: boolean; logging?: boolean } }
+
+    // Migration: convert old flags.speak to voice.enabled
+    const voice = parsed.voice ?? {
+      enabled: parsed.flags?.speak ?? DEFAULT_VOICE.enabled,
+      volume: DEFAULT_VOICE.volume,
+    }
+
     return {
       ...DEFAULT_CONFIG,
       ...parsed,
-      flags: {
-        ...DEFAULT_CONFIG.flags,
-        ...parsed.flags,
+      voice: {
+        ...DEFAULT_VOICE,
+        ...voice,
       },
+      alerts: {
+        ...DEFAULT_ALERTS,
+        ...parsed.alerts,
+      },
+      logging: parsed.logging ?? parsed.flags?.logging ?? DEFAULT_CONFIG.logging,
       templates: {
         ...DEFAULT_TEMPLATES,
         ...parsed.templates,
@@ -82,27 +121,49 @@ export function renderTemplate(key: keyof SpeakTemplates, vars: Record<string, s
   return template
 }
 
-export function saveConfig(config: HookedConfig): void {
+export function saveConfig(cfg: HookedConfig): void {
   ensureDir()
-  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2))
+  writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2))
 }
 
-export function setFlag(flag: keyof HookedConfig['flags'], value: boolean): HookedConfig {
-  const config = getConfig()
-  config.flags[flag] = value
-  saveConfig(config)
-  return config
+// Voice helpers
+export function setVoiceEnabled(enabled: boolean): HookedConfig {
+  const cfg = getConfig()
+  cfg.voice.enabled = enabled
+  saveConfig(cfg)
+  return cfg
 }
 
-export function getFlag(flag: keyof HookedConfig['flags']): boolean {
-  return getConfig().flags[flag]
+export function setVoiceVolume(volume: number): HookedConfig {
+  const cfg = getConfig()
+  cfg.voice.volume = Math.max(0, Math.min(1, volume))
+  saveConfig(cfg)
+  return cfg
+}
+
+export function isVoiceEnabled(): boolean {
+  return getConfig().voice.enabled
+}
+
+export function getVoiceVolume(): number {
+  return getConfig().voice.volume
+}
+
+// Alert helpers
+export function getAlertConfig(): AlertConfig {
+  return getConfig().alerts
 }
 
 export const config = {
   get: getConfig,
   save: saveConfig,
-  getFlag,
-  setFlag,
   getTemplate,
   renderTemplate,
+  // Voice
+  isVoiceEnabled,
+  setVoiceEnabled,
+  getVoiceVolume,
+  setVoiceVolume,
+  // Alerts
+  getAlertConfig,
 }
