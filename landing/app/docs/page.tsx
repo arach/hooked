@@ -307,6 +307,14 @@ Configuration is stored in \`~/.hooked/config.json\`:
   "flags": {
     "speak": true,
     "logging": true
+  },
+  "templates": {
+    "loopStarted": "In {project}, loop started. {goal}",
+    "checkPassed": "In {project}, check passed. Loop complete.",
+    "checkFailed": "In {project}, check failed. Keep working.",
+    "pausing": "In {project}, pausing as requested.",
+    "manualRound": "In {project}, round {round}. Objective: {objective}",
+    "missionComplete": "Mission complete."
   }
 }
 \`\`\`
@@ -318,17 +326,31 @@ Configuration is stored in \`~/.hooked/config.json\`:
 | \`flags.speak\` | boolean | \`true\` | Enable voice announcements |
 | \`flags.logging\` | boolean | \`true\` | Enable event logging |
 
+### Voice Templates
+
+Customize what Claude says at each event. Available variables:
+
+| Template | Variables | When |
+|----------|-----------|------|
+| \`loopStarted\` | \`{project}\`, \`{goal}\` | Loop claimed by session |
+| \`checkPassed\` | \`{project}\` | Check command succeeded |
+| \`checkFailed\` | \`{project}\` | Check command failed |
+| \`pausing\` | \`{project}\` | User requested pause |
+| \`manualRound\` | \`{project}\`, \`{round}\`, \`{objective}\` | Each manual mode iteration |
+| \`missionComplete\` | (none) | All loops cleared |
+
 ### File locations
 
 \`\`\`
 ~/.hooked/
 ├── config.json       # Configuration
 ├── pending.json      # Pending until loop (waiting to be claimed)
+├── sessions.json     # Session registry (project → session mapping)
 ├── pause             # Pause flag (if present, next cycle stops)
 ├── state/            # Session-bound state files
 │   ├── {sessionId}.json
 │   └── ...
-├── logs/             # Event logs
+├── history/          # Event logs
 └── src/              # Hook source files
 
 ~/.claude/

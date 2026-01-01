@@ -51,7 +51,10 @@
       "Bash(node_modules/.bin/tsx:*)",
       "Bash(~/.hooked/node_modules/.bin/tsx:*)",
       "Bash(tree:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git checkout:*)",
+      "Bash(head:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

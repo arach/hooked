@@ -288,12 +288,12 @@ function UntilDemo() {
 function Features() {
   return (
     <section className="py-16 px-6 max-w-5xl mx-auto border-t border-white/5">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
           <div className="text-sky-500">
             <Volume2 size={18} />
           </div>
-          <h4 className="text-sm font-bold">Voice</h4>
+          <h4 className="text-sm font-bold">Voice Alerts</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
             Hear when Claude needs you, starts a loop, completes a round, or finishes a mission.
           </p>
@@ -314,6 +314,15 @@ function Features() {
           <h4 className="text-sm font-bold">Zero Config</h4>
           <p className="text-zinc-500 text-xs leading-relaxed">
             Run <code className="text-sky-400">pnpm run hooked:init</code> once. Voice + until loops ready to go.
+          </p>
+        </div>
+        <div className="p-6 rounded-lg border border-zinc-800 bg-zinc-900/20 space-y-3">
+          <div className="text-sky-500">
+            <Layers size={18} />
+          </div>
+          <h4 className="text-sm font-bold">Custom Templates</h4>
+          <p className="text-zinc-500 text-xs leading-relaxed">
+            Customize voice messages in <code className="text-sky-400">config.json</code>. Make Claude say what you want.
           </p>
         </div>
       </div>
