@@ -13,7 +13,7 @@ import { existsSync, mkdirSync } from 'fs'
 const HOOKED_HOME = join(homedir(), '.hooked')
 const DB_PATH = join(HOOKED_HOME, 'history.sqlite')
 
-export type EventType = 'notification' | 'stop' | 'alert_set' | 'alert_cleared' | 'reminder' | 'continuation' | 'command'
+export type EventType = 'notification' | 'stop' | 'alert_set' | 'alert_cleared' | 'reminder' | 'continuation' | 'command' | 'spoken'
 
 export interface HistoryEvent {
   id?: number

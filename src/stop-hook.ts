@@ -90,7 +90,7 @@ async function main(): Promise<void> {
       meta: { objective: pending.objective, check: pending.check }
     })
     const goal = pending.mode === 'manual' ? pending.objective : pending.check
-    await speak(renderTemplate('loopStarted', { project: displayName, goal: goal || '' }))
+    await speak(renderTemplate('loopStarted', { project: displayName, goal: goal || '' }), { sessionId })
     console.error(`[hooked:stop] Claimed pending loop for session ${sessionId}`)
   } else if (pending) {
     // Pending exists but doesn't match this session - log and skip
@@ -117,7 +117,7 @@ async function main(): Promise<void> {
       event: 'paused',
       evaluator: state.mode
     })
-    await speak(renderTemplate('pausing', { project: displayName }))
+    await speak(renderTemplate('pausing', { project: displayName }), { sessionId })
     output({ decision: 'approve', reason: 'Paused by user request' })
     return
   }
@@ -146,7 +146,7 @@ async function main(): Promise<void> {
         payload: { check: state.check, decision: 'approve' },
       })
 
-      await speak(renderTemplate('checkPassed', { project: displayName }))
+      await speak(renderTemplate('checkPassed', { project: displayName }), { sessionId })
       output({ decision: 'approve', reason: 'Check passed' })
     } else {
       log.event({
@@ -167,7 +167,7 @@ async function main(): Promise<void> {
         payload: { check: state.check, decision: 'block' },
       })
 
-      await speak(renderTemplate('checkFailed', { project: displayName }))
+      await speak(renderTemplate('checkFailed', { project: displayName }), { sessionId })
       output({ decision: 'block', reason: `Check failed: ${state.check}` })
     }
     return
@@ -194,7 +194,7 @@ async function main(): Promise<void> {
     payload: { objective: state.objective, round, decision: 'block' },
   })
 
-  await speak(renderTemplate('manualRound', { project: displayName, round, objective: state.objective || '' }))
+  await speak(renderTemplate('manualRound', { project: displayName, round, objective: state.objective || '' }), { sessionId })
   output({ decision: 'block', reason: `Round ${round}: ${state.objective}` })
 }
 

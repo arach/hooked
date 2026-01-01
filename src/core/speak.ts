@@ -1,5 +1,6 @@
 import { SpeakEasy } from '@arach/speakeasy'
 import { config } from './config'
+import { history } from './history'
 
 // Create SpeakEasy instance
 // Configuration is managed by SpeakEasy via ~/.config/speakeasy/settings.json
@@ -9,6 +10,7 @@ const speakEasy = new SpeakEasy({})
 export interface SpeakOptions {
   priority?: 'high' | 'normal' | 'low'
   volume?: number  // Override config volume
+  sessionId?: string  // For history logging
 }
 
 /**
@@ -23,6 +25,22 @@ export async function speak(message: string, options?: SpeakOptions): Promise<vo
 
   const volume = options?.volume ?? config.getVoiceVolume()
   console.error(`[hooked:speak] Speaking (vol ${volume}): "${message}"`)
+
+  // Extract project from message if it starts with "In <project>,"
+  const projectMatch = message.match(/^In ([^,]+),/)
+  const project = projectMatch?.[1] || 'hooked'
+
+  // Log to history - captures everything that's spoken
+  history.log({
+    type: 'spoken',
+    project,
+    session_id: options?.sessionId,
+    message,
+    payload: {
+      priority: options?.priority ?? 'high',
+      volume,
+    },
+  })
 
   try {
     await speakEasy.speak(message, {

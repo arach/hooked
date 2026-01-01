@@ -70,7 +70,7 @@ async function main(): Promise<void> {
         type: alert.type,
         minutes,
       });
-      await speak(message, { priority: 'high' });
+      await speak(message, { priority: 'high', sessionId });
 
       // Log to history
       history.log({
@@ -94,7 +94,7 @@ async function main(): Promise<void> {
         type: alert.type,
         minutes,
       });
-      await speak(message);
+      await speak(message, { sessionId });
 
       // Log to history
       history.log({

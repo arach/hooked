@@ -95,7 +95,7 @@ async function handleNotification(parsedPayload: NotificationPayload | null) {
   const speechMessage = buildSpeechMessage(displayName, hookEventName, message);
   logger.info('Speaking', { speechMessage });
 
-  await speak(speechMessage);
+  await speak(speechMessage, { sessionId });
 
   // Track alert for reminders (only for notifications that need user attention)
   const alertConfig = config.getAlertConfig();
