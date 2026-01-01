@@ -358,14 +358,17 @@ function handleHistory(): void {
 
 function printEvents(events: ReturnType<typeof history.getRecent>): void {
   for (const event of events) {
-    const time = new Date(event.timestamp).toLocaleString()
+    const date = new Date(event.timestamp)
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     const sessionShort = event.session_id?.slice(0, 8) || '--------'
-    console.log(`[${time}] ${event.type.padEnd(12)} ${event.project.padEnd(15)} ${sessionShort}`)
-    if (event.message) {
-      console.log(`    ${event.message}`)
-    }
+
+    // Compact single-line format with full message
+    const prefix = `${time} ${event.type.padEnd(14)} ${event.project.padEnd(12)} ${sessionShort}`
+    const msg = event.message || ''
+    console.log(`${prefix}  ${msg}`)
+
     if (event.payload && args.includes('--full')) {
-      console.log(`    ${JSON.stringify(event.payload)}`)
+      console.log(`${''.padEnd(50)}  ${JSON.stringify(event.payload)}`)
     }
   }
 }
