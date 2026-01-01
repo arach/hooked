@@ -15,6 +15,7 @@ import { speak } from './core/speak';
 import { project } from './core/project';
 import { alerts } from './core/alerts';
 import { config } from './core/config';
+import { history } from './core/history';
 
 // Types
 interface NoOpLogger {
@@ -78,6 +79,17 @@ async function handleNotification(parsedPayload: NotificationPayload | null) {
   const displayName = project.getDisplayNameFromFolder(projectFolder);
 
   logger.info('Extracted project info', { projectFolder, displayName });
+
+  // Log to history (full Claude payload stored in SQLite)
+  const eventType = hookEventName === 'Stop' ? 'stop' : 'notification';
+  history.log({
+    type: eventType,
+    project: displayName,
+    session_id: sessionId,
+    hook_event_name: hookEventName,
+    message,
+    payload: parsedPayload || undefined,  // Full Claude metadata as JSON
+  });
 
   // Build and speak message
   const speechMessage = buildSpeechMessage(displayName, hookEventName, message);

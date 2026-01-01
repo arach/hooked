@@ -21,6 +21,7 @@ import { speak } from './core/speak'
 import { log } from './core/log'
 import { project } from './core/project'
 import { alerts } from './core/alerts'
+import { history } from './core/history'
 
 const [, , command, ...args] = process.argv
 
@@ -46,6 +47,10 @@ hooked - Voice & until loops for Claude Code
 
 Commands:
   status                Show current state
+  history [n]           Show recent events (default: 20)
+  history stats         Show event counts by project
+  history search <q>    Search events
+  history --full        Include full Claude payload
 
 Speak:
   speak on|off          Toggle voice announcements
@@ -58,6 +63,8 @@ Until:
 
 Examples:
   hooked status
+  hooked history 50
+  hooked history stats
   hooked speak off
   hooked until "implement auth system"
   hooked until check "pnpm test"
@@ -295,6 +302,51 @@ function handleStatus(): void {
   console.log()
 }
 
+function handleHistory(): void {
+  const subcommand = args[0]
+
+  if (subcommand === 'stats') {
+    // Show stats
+    const count = history.getCount()
+    const stats = history.getProjectStats()
+    console.log('=== History Stats ===\n')
+    console.log(`Total events: ${count}`)
+    console.log('\nBy project:')
+    for (const { project, count } of stats) {
+      console.log(`  ${project}: ${count}`)
+    }
+    return
+  }
+
+  if (subcommand === 'search' && args[1]) {
+    const query = args.slice(1).join(' ')
+    const events = history.search(query, 20)
+    console.log(`=== Search: "${query}" ===\n`)
+    printEvents(events)
+    return
+  }
+
+  // Default: show recent events
+  const limit = subcommand ? parseInt(subcommand, 10) || 20 : 20
+  const events = history.getRecent(limit)
+  console.log(`=== Recent Events (${events.length}) ===\n`)
+  printEvents(events)
+}
+
+function printEvents(events: ReturnType<typeof history.getRecent>): void {
+  for (const event of events) {
+    const time = new Date(event.timestamp).toLocaleString()
+    const sessionShort = event.session_id?.slice(0, 8) || '--------'
+    console.log(`[${time}] ${event.type.padEnd(12)} ${event.project.padEnd(15)} ${sessionShort}`)
+    if (event.message) {
+      console.log(`    ${event.message}`)
+    }
+    if (event.payload && args.includes('--full')) {
+      console.log(`    ${JSON.stringify(event.payload)}`)
+    }
+  }
+}
+
 // Main router
 async function main(): Promise<void> {
   switch (command) {
@@ -327,6 +379,11 @@ async function main(): Promise<void> {
       // Shortcut for until pause
       continuation.setPause()
       console.log('Pause requested.')
+      break
+
+    case 'history':
+    case 'h':
+      handleHistory()
       break
 
     case 'help':
