@@ -202,6 +202,64 @@ export function search(query: string, limit: number = 50): StoredEvent[] {
   return stmt.all(pattern, pattern, limit).map(row => parseRow(row as Record<string, unknown>))
 }
 
+/**
+ * Export all events to JSON.
+ */
+export function exportToJson(): string {
+  const db = getDb()
+  const stmt = db.prepare('SELECT * FROM events ORDER BY timestamp ASC')
+  const events = stmt.all().map(row => parseRow(row as Record<string, unknown>))
+  return JSON.stringify(events, null, 2)
+}
+
+/**
+ * Export all events to CSV.
+ */
+export function exportToCsv(): string {
+  const db = getDb()
+  const stmt = db.prepare('SELECT * FROM events ORDER BY timestamp ASC')
+  const events = stmt.all().map(row => parseRow(row as Record<string, unknown>))
+
+  const headers = ['id', 'timestamp', 'type', 'project', 'session_id', 'hook_event_name', 'message', 'payload']
+  const rows = events.map(e => [
+    e.id,
+    e.timestamp,
+    e.type,
+    e.project,
+    e.session_id || '',
+    e.hook_event_name || '',
+    (e.message || '').replace(/"/g, '""'),
+    e.payload ? JSON.stringify(e.payload).replace(/"/g, '""') : '',
+  ])
+
+  const csvRows = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+  ]
+  return csvRows.join('\n')
+}
+
+/**
+ * Delete events older than N days.
+ */
+export function deleteOlderThan(days: number): number {
+  const db = getDb()
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+
+  const stmt = db.prepare('DELETE FROM events WHERE timestamp < ?')
+  const result = stmt.run(cutoff.toISOString())
+  return result.changes
+}
+
+/**
+ * Vacuum the database to reclaim space.
+ */
+export function vacuum(): void {
+  const db = getDb()
+  db.exec('VACUUM')
+}
+
 export const history = {
   log: logEvent,
   getRecent,
@@ -212,4 +270,8 @@ export const history = {
   getProjectStats,
   getCount,
   search,
+  exportToJson,
+  exportToCsv,
+  deleteOlderThan,
+  vacuum,
 }

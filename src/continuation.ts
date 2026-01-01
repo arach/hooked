@@ -9,6 +9,7 @@
 import { existsSync, mkdirSync, writeFileSync, unlinkSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
+import { history } from './core/history'
 
 const HOOKED_HOME = join(homedir(), '.hooked')
 const STATE_DIR = join(HOOKED_HOME, 'state')
@@ -65,6 +66,21 @@ export function setPending(mode: ContinuationMode, value: string, options?: Pend
     targetFolder: options?.targetFolder,
   }
   writeFileSync(PENDING_FILE, JSON.stringify(state, null, 2))
+
+  // Log to history
+  history.log({
+    type: 'continuation',
+    project: 'hooked',
+    session_id: options?.targetSession,
+    hook_event_name: 'continuation_set',
+    message: mode === 'manual' ? `Objective: ${value}` : `Check: ${value}`,
+    payload: {
+      mode,
+      value,
+      target_folder: options?.targetFolder,
+    },
+  })
+
   return state
 }
 
@@ -121,9 +137,28 @@ export function setSession(sessionId: string, state: ContinuationState): void {
   writeFileSync(getSessionFile(sessionId), JSON.stringify(state, null, 2))
 }
 
-export function clearSession(sessionId: string): void {
+export function clearSession(sessionId: string, reason?: string, projectName?: string): void {
+  const state = getSession(sessionId)
   const file = getSessionFile(sessionId)
+
   if (existsSync(file)) {
+    // Log to history before clearing
+    if (state) {
+      history.log({
+        type: 'continuation',
+        project: projectName || 'hooked',
+        session_id: sessionId,
+        hook_event_name: 'continuation_ended',
+        message: reason || 'Continuation ended',
+        payload: {
+          mode: state.mode,
+          iterations: state.iteration,
+          objective: state.objective,
+          check: state.check,
+          reason,
+        },
+      })
+    }
     unlinkSync(file)
   }
 }
@@ -158,12 +193,26 @@ export function getActiveSessions(): Array<{ sessionId: string; state: Continuat
 
 // ============ Claim: move pending → session ============
 
-export function claim(sessionId: string): ContinuationState | null {
+export function claim(sessionId: string, projectName?: string): ContinuationState | null {
   const pending = getPending()
   if (!pending) return null
 
   setSession(sessionId, pending)
   clearPending()
+
+  // Log to history
+  history.log({
+    type: 'continuation',
+    project: projectName || 'hooked',
+    session_id: sessionId,
+    hook_event_name: 'continuation_claimed',
+    message: `Claimed: ${pending.objective || pending.check}`,
+    payload: {
+      mode: pending.mode,
+      iteration: pending.iteration,
+    },
+  })
+
   return pending
 }
 

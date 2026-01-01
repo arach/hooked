@@ -12,6 +12,7 @@
 import { alerts } from './core/alerts';
 import { config, renderTemplate } from './core/config';
 import { speak } from './core/speak';
+import { history } from './core/history';
 
 const sessionIdArg = process.argv[2];
 
@@ -71,7 +72,20 @@ async function main(): Promise<void> {
       });
       await speak(message, { priority: 'high' });
 
-      // TODO: Could add additional escalation here (SMS, push notification, etc.)
+      // Log to history
+      history.log({
+        type: 'reminder',
+        project: alert.project,
+        session_id: sessionId,
+        message,
+        payload: {
+          reminder_number: reminderCount,
+          escalated: true,
+          age_minutes: minutes,
+          alert_type: alert.type,
+        },
+      });
+
       console.error(`[reminder] ESCALATION: ${message}`);
     } else {
       // Normal reminder
@@ -81,6 +95,21 @@ async function main(): Promise<void> {
         minutes,
       });
       await speak(message);
+
+      // Log to history
+      history.log({
+        type: 'reminder',
+        project: alert.project,
+        session_id: sessionId,
+        message,
+        payload: {
+          reminder_number: reminderCount,
+          escalated: false,
+          age_minutes: minutes,
+          alert_type: alert.type,
+        },
+      });
+
       console.error(`[reminder] Spoke: ${message}`);
     }
   }

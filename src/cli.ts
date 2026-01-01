@@ -47,9 +47,13 @@ hooked - Voice & until loops for Claude Code
 
 Commands:
   status                Show current state
+
+History:
   history [n]           Show recent events (default: 20)
   history stats         Show event counts by project
   history search <q>    Search events
+  history export [json|csv]  Export all events
+  history prune [days]  Delete events older than N days (default: 30)
   history --full        Include full Claude payload
 
 Speak:
@@ -64,7 +68,8 @@ Until:
 Examples:
   hooked status
   hooked history 50
-  hooked history stats
+  hooked history export json > backup.json
+  hooked history prune 90
   hooked speak off
   hooked until "implement auth system"
   hooked until check "pnpm test"
@@ -312,8 +317,8 @@ function handleHistory(): void {
     console.log('=== History Stats ===\n')
     console.log(`Total events: ${count}`)
     console.log('\nBy project:')
-    for (const { project, count } of stats) {
-      console.log(`  ${project}: ${count}`)
+    for (const { project: proj, count: c } of stats) {
+      console.log(`  ${proj}: ${c}`)
     }
     return
   }
@@ -323,6 +328,24 @@ function handleHistory(): void {
     const events = history.search(query, 20)
     console.log(`=== Search: "${query}" ===\n`)
     printEvents(events)
+    return
+  }
+
+  if (subcommand === 'export') {
+    const format = args[1] || 'json'
+    if (format === 'csv') {
+      console.log(history.exportToCsv())
+    } else {
+      console.log(history.exportToJson())
+    }
+    return
+  }
+
+  if (subcommand === 'prune') {
+    const days = args[1] ? parseInt(args[1], 10) : 30
+    const deleted = history.deleteOlderThan(days)
+    history.vacuum()
+    console.log(`Deleted ${deleted} events older than ${days} days.`)
     return
   }
 

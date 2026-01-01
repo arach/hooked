@@ -15,6 +15,7 @@ import { speak } from './core/speak'
 import { log, registerSession } from './core/log'
 import { renderTemplate } from './core/config'
 import { project } from './core/project'
+import { history } from './core/history'
 
 interface StopPayload {
   session_id: string
@@ -80,7 +81,7 @@ async function main(): Promise<void> {
   // Step 1: Check for pending and claim it (only if it targets this session/folder)
   const pending = continuation.getPending()
   if (pending && continuation.pendingMatchesSession(sessionId, projectFolder)) {
-    continuation.claim(sessionId)
+    continuation.claim(sessionId, displayName)
     log.event({
       session: sessionId,
       project: displayName,
@@ -108,7 +109,7 @@ async function main(): Promise<void> {
 
   // Step 3: Check for global pause
   if (continuation.isPaused()) {
-    continuation.clearSession(sessionId)
+    continuation.clearSession(sessionId, 'Paused by user', displayName)
     continuation.clearPause()
     log.event({
       session: sessionId,
@@ -126,7 +127,7 @@ async function main(): Promise<void> {
     const passed = await runCheck(state.check)
 
     if (passed) {
-      continuation.clearSession(sessionId)
+      continuation.clearSession(sessionId, 'Check passed', displayName)
       log.event({
         session: sessionId,
         project: displayName,
@@ -134,6 +135,17 @@ async function main(): Promise<void> {
         evaluator: 'check',
         reason: 'Check passed'
       })
+
+      // Log to history
+      history.log({
+        type: 'continuation',
+        project: displayName,
+        session_id: sessionId,
+        hook_event_name: 'check_passed',
+        message: `Check passed: ${state.check}`,
+        payload: { check: state.check, decision: 'approve' },
+      })
+
       await speak(renderTemplate('checkPassed', { project: displayName }))
       output({ decision: 'approve', reason: 'Check passed' })
     } else {
@@ -144,6 +156,17 @@ async function main(): Promise<void> {
         evaluator: 'check',
         reason: 'Check failed'
       })
+
+      // Log to history
+      history.log({
+        type: 'continuation',
+        project: displayName,
+        session_id: sessionId,
+        hook_event_name: 'check_failed',
+        message: `Check failed: ${state.check}`,
+        payload: { check: state.check, decision: 'block' },
+      })
+
       await speak(renderTemplate('checkFailed', { project: displayName }))
       output({ decision: 'block', reason: `Check failed: ${state.check}` })
     }
@@ -160,6 +183,17 @@ async function main(): Promise<void> {
     iteration: round,
     meta: { objective: state.objective }
   })
+
+  // Log to history
+  history.log({
+    type: 'continuation',
+    project: displayName,
+    session_id: sessionId,
+    hook_event_name: 'manual_blocked',
+    message: `Round ${round}: ${state.objective}`,
+    payload: { objective: state.objective, round, decision: 'block' },
+  })
+
   await speak(renderTemplate('manualRound', { project: displayName, round, objective: state.objective || '' }))
   output({ decision: 'block', reason: `Round ${round}: ${state.objective}` })
 }

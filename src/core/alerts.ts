@@ -8,6 +8,7 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
+import { history } from './history'
 
 const HOOKED_HOME = join(homedir(), '.hooked')
 const ALERTS_FILE = join(HOOKED_HOME, 'pending-alerts.json')
@@ -53,6 +54,16 @@ export function setAlert(alert: Omit<PendingAlert, 'timestamp' | 'reminders'>): 
   }
   alerts[alert.sessionId] = fullAlert
   saveAlerts(alerts)
+
+  // Log to history
+  history.log({
+    type: 'alert_set',
+    project: alert.project,
+    session_id: alert.sessionId,
+    message: alert.message,
+    payload: { alert_type: alert.type },
+  })
+
   return fullAlert
 }
 
@@ -65,9 +76,25 @@ export function getAllAlerts(): PendingAlert[] {
   return Object.values(getAlerts())
 }
 
-export function clearAlert(sessionId: string): boolean {
+export function clearAlert(sessionId: string, reason: string = 'user_activity'): boolean {
   const alerts = getAlerts()
-  if (!alerts[sessionId]) return false
+  const alert = alerts[sessionId]
+  if (!alert) return false
+
+  // Log to history before clearing
+  history.log({
+    type: 'alert_cleared',
+    project: alert.project,
+    session_id: sessionId,
+    message: `Alert cleared: ${reason}`,
+    payload: {
+      alert_type: alert.type,
+      age_minutes: getAlertAgeMinutes(alert),
+      reminders_sent: alert.reminders,
+      reason,
+    },
+  })
+
   delete alerts[sessionId]
   saveAlerts(alerts)
   return true
