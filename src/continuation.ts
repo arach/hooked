@@ -24,6 +24,8 @@ export interface ContinuationState {
   check?: string      // For check mode (command to run)
   createdAt: string
   iteration: number   // How many times we've continued
+  targetSession?: string  // Specific session ID to target
+  targetFolder?: string   // Claude's project folder to match (e.g., Users-arach-dev-my-project)
 }
 
 function ensureDirs(): void {
@@ -46,7 +48,12 @@ export function getPending(): ContinuationState | null {
   }
 }
 
-export function setPending(mode: ContinuationMode, value: string): ContinuationState {
+export interface PendingOptions {
+  targetSession?: string
+  targetFolder?: string
+}
+
+export function setPending(mode: ContinuationMode, value: string, options?: PendingOptions): ContinuationState {
   ensureDirs()
   const state: ContinuationState = {
     active: true,
@@ -54,9 +61,29 @@ export function setPending(mode: ContinuationMode, value: string): ContinuationS
     ...(mode === 'manual' ? { objective: value } : { check: value }),
     createdAt: new Date().toISOString(),
     iteration: 0,
+    targetSession: options?.targetSession,
+    targetFolder: options?.targetFolder,
   }
   writeFileSync(PENDING_FILE, JSON.stringify(state, null, 2))
   return state
+}
+
+export function pendingMatchesSession(sessionId: string, projectFolder: string): boolean {
+  const pending = getPending()
+  if (!pending) return false
+
+  // If pending has a specific target session, must match exactly
+  if (pending.targetSession) {
+    return pending.targetSession === sessionId
+  }
+
+  // If pending has a target folder, match by folder name (exact match)
+  if (pending.targetFolder) {
+    return pending.targetFolder === projectFolder
+  }
+
+  // No targeting - legacy behavior: any session can claim
+  return true
 }
 
 export function incrementIteration(sessionId: string): number {
@@ -164,6 +191,7 @@ export const continuation = {
   getPending,
   setPending,
   clearPending,
+  pendingMatchesSession,
 
   // Session
   getSession,

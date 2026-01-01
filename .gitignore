@@ -104,3 +104,10 @@ Thumbs.db
 build/
 dist/
 out/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Backup files/directories
+*.bak
+*.bak/

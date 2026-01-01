@@ -140,7 +140,7 @@ tail -f ~/logs/claude-hooks/notification.log
 
 ## Resources
 
-- [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks)
+- [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks-guide)
 - [SpeakEasy TTS Library](https://github.com/arach/speakeasy)
 
 ---

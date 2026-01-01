@@ -12,7 +12,9 @@
 import { execSync } from 'child_process'
 import { continuation } from './continuation'
 import { speak } from './core/speak'
-import { log } from './core/log'
+import { log, registerSession } from './core/log'
+import { renderTemplate } from './core/config'
+import { project } from './core/project'
 
 interface StopPayload {
   session_id: string
@@ -23,23 +25,6 @@ interface StopPayload {
 interface StopDecision {
   decision: 'block' | 'approve'
   reason?: string
-}
-
-// Derive project name from transcript path for announcements
-function deriveProjectName(transcriptPath?: string): string {
-  if (!transcriptPath) return 'session'
-
-  const dashedMatch = transcriptPath.match(/projects\/[^/]*-([^/]+)\//)
-  if (dashedMatch?.[1]) {
-    return dashedMatch[1].replace(/-/g, ' ')
-  }
-
-  const plainMatch = transcriptPath.match(/projects\/([^/]+)\//)
-  if (plainMatch?.[1]) {
-    return plainMatch[1].replace(/-/g, ' ').replace(/\./g, ' dot ')
-  }
-
-  return 'session'
 }
 
 function readStdin(): Promise<string> {
@@ -78,7 +63,8 @@ async function main(): Promise<void> {
   }
 
   const sessionId = payload.session_id
-  const project = deriveProjectName(payload.transcript_path)
+  const projectFolder = project.extractFolder(payload.transcript_path || '') || 'unknown'
+  const displayName = project.getDisplayNameFromFolder(projectFolder)
 
   if (!sessionId) {
     console.error('[hooked:stop] No session_id in payload')
@@ -86,20 +72,29 @@ async function main(): Promise<void> {
     return
   }
 
-  // Step 1: Check for pending and claim it
+  // Register this session in the registry (for project → session lookups)
+  if (projectFolder !== 'unknown') {
+    registerSession(sessionId, projectFolder, displayName)
+  }
+
+  // Step 1: Check for pending and claim it (only if it targets this session/folder)
   const pending = continuation.getPending()
-  if (pending) {
+  if (pending && continuation.pendingMatchesSession(sessionId, projectFolder)) {
     continuation.claim(sessionId)
     log.event({
       session: sessionId,
-      project,
+      project: displayName,
       event: 'claimed',
       evaluator: pending.mode,
       meta: { objective: pending.objective, check: pending.check }
     })
     const goal = pending.mode === 'manual' ? pending.objective : pending.check
-    await speak(`In ${project}, loop started. ${goal}`)
+    await speak(renderTemplate('loopStarted', { project: displayName, goal: goal || '' }))
     console.error(`[hooked:stop] Claimed pending loop for session ${sessionId}`)
+  } else if (pending) {
+    // Pending exists but doesn't match this session - log and skip
+    const target = pending.targetSession?.slice(0, 8) || pending.targetFolder?.slice(-15) || 'any'
+    console.error(`[hooked:stop] Pending exists for ${target}, skipping (this session: ${sessionId.slice(0, 8)}/${displayName})`)
   }
 
   // Step 2: Check for bound session
@@ -117,11 +112,11 @@ async function main(): Promise<void> {
     continuation.clearPause()
     log.event({
       session: sessionId,
-      project,
+      project: displayName,
       event: 'paused',
       evaluator: state.mode
     })
-    await speak(`In ${project}, pausing as requested.`)
+    await speak(renderTemplate('pausing', { project: displayName }))
     output({ decision: 'approve', reason: 'Paused by user request' })
     return
   }
@@ -134,22 +129,22 @@ async function main(): Promise<void> {
       continuation.clearSession(sessionId)
       log.event({
         session: sessionId,
-        project,
+        project: displayName,
         event: 'completed',
         evaluator: 'check',
         reason: 'Check passed'
       })
-      await speak(`In ${project}, check passed. Loop complete.`)
+      await speak(renderTemplate('checkPassed', { project: displayName }))
       output({ decision: 'approve', reason: 'Check passed' })
     } else {
       log.event({
         session: sessionId,
-        project,
+        project: displayName,
         event: 'blocked',
         evaluator: 'check',
         reason: 'Check failed'
       })
-      await speak(`In ${project}, check failed. Keep working.`)
+      await speak(renderTemplate('checkFailed', { project: displayName }))
       output({ decision: 'block', reason: `Check failed: ${state.check}` })
     }
     return
@@ -159,13 +154,13 @@ async function main(): Promise<void> {
   const round = continuation.incrementIteration(sessionId)
   log.event({
     session: sessionId,
-    project,
+    project: displayName,
     event: 'blocked',
     evaluator: 'manual',
     iteration: round,
     meta: { objective: state.objective }
   })
-  await speak(`In ${project}, round ${round}. Objective: ${state.objective}`)
+  await speak(renderTemplate('manualRound', { project: displayName, round, objective: state.objective || '' }))
   output({ decision: 'block', reason: `Round ${round}: ${state.objective}` })
 }
 

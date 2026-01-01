@@ -16,10 +16,28 @@
  */
 
 import { continuation } from './continuation'
-import { config } from './core/config'
+import { config, renderTemplate } from './core/config'
 import { speak } from './core/speak'
+import { log } from './core/log'
+import { project } from './core/project'
 
 const [, , command, ...args] = process.argv
+
+// Get current project folder (matches Claude's encoding)
+function getCurrentProjectFolder(): string {
+  return project.pathToFolder(process.cwd())
+}
+
+// Get display name for voice/output
+function getCurrentDisplayName(): string {
+  return project.getDisplayName(process.cwd())
+}
+
+// Look up session for current project
+function getCurrentSession(): { sessionId: string; projectFolder: string; displayName: string } | null {
+  const folder = getCurrentProjectFolder()
+  return log.getSessionByFolder(folder)
+}
 
 function showHelp(): void {
   console.log(`
@@ -108,7 +126,7 @@ async function handleUntil(): Promise<void> {
       continuation.clearAllSessions()
       continuation.clearPause()
       console.log('All until loops cleared.')
-      await speak('Mission complete.')
+      await speak(renderTemplate('missionComplete', {}))
       break
 
     case 'pause':
@@ -124,22 +142,48 @@ async function handleUntil(): Promise<void> {
         console.error('Usage: hooked until check "pnpm test"')
         process.exit(1)
       }
-      const state = continuation.setPending('check', checkCmd)
+
+      // Try to target specific session, fallback to project folder
+      const session = getCurrentSession()
+      const folder = getCurrentProjectFolder()
+      const displayName = getCurrentDisplayName()
+      const state = continuation.setPending('check', checkCmd, {
+        targetSession: session?.sessionId,
+        targetFolder: session ? undefined : folder,
+      })
+
       console.log('Until loop pending.')
       console.log(`Mode: check`)
       console.log(`Command: ${state.check}`)
-      console.log('\nNext Claude stop will claim this loop.')
+      if (session) {
+        console.log(`Target: session ${session.sessionId.slice(0, 8)}... (${displayName})`)
+      } else {
+        console.log(`Target: project "${displayName}" (no active session yet)`)
+      }
       break
     }
 
     default: {
       // Treat as objective
       const objective = [subcommand, ...args.slice(1)].join(' ')
-      const state = continuation.setPending('manual', objective)
+
+      // Try to target specific session, fallback to project folder
+      const session = getCurrentSession()
+      const folder = getCurrentProjectFolder()
+      const displayName = getCurrentDisplayName()
+      const state = continuation.setPending('manual', objective, {
+        targetSession: session?.sessionId,
+        targetFolder: session ? undefined : folder,
+      })
+
       console.log('Until loop pending.')
       console.log(`Mode: manual`)
       console.log(`Objective: ${state.objective}`)
-      console.log('\nNext Claude stop will claim this loop.')
+      if (session) {
+        console.log(`Target: session ${session.sessionId.slice(0, 8)}... (${displayName})`)
+      } else {
+        console.log(`Target: project "${displayName}" (no active session yet)`)
+      }
     }
   }
 }
@@ -147,10 +191,23 @@ async function handleUntil(): Promise<void> {
 function handleStatus(): void {
   const cfg = config.get()
   const pending = continuation.getPending()
-  const sessions = continuation.getActiveSessions()
+  const activeSessions = continuation.getActiveSessions()
   const paused = continuation.isPaused()
+  const registeredSessions = log.getAllSessions()
 
   console.log('=== Hooked Status ===\n')
+
+  // Current context
+  const displayName = getCurrentDisplayName()
+  const currentSession = getCurrentSession()
+  console.log('Context:')
+  console.log(`  Project: ${displayName}`)
+  if (currentSession) {
+    console.log(`  Session: ${currentSession.sessionId.slice(0, 8)}...`)
+  } else {
+    console.log(`  Session: (none registered)`)
+  }
+  console.log()
 
   // Speak section
   console.log('Speak:')
@@ -170,18 +227,41 @@ function handleStatus(): void {
     console.log(`    Mode: ${pending.mode}`)
     if (pending.objective) console.log(`    Objective: ${pending.objective}`)
     if (pending.check) console.log(`    Check: ${pending.check}`)
+    if (pending.targetSession) {
+      console.log(`    Target: session ${pending.targetSession.slice(0, 8)}...`)
+    } else if (pending.targetFolder) {
+      console.log(`    Target: folder ${pending.targetFolder.slice(-20)}...`)
+    } else {
+      console.log(`    Target: any session (legacy)`)
+    }
   }
 
-  if (sessions.length > 0) {
-    console.log(`  Active (${sessions.length}):`)
-    for (const { sessionId, state } of sessions) {
+  if (activeSessions.length > 0) {
+    console.log(`  Active loops (${activeSessions.length}):`)
+    for (const { sessionId, state } of activeSessions) {
       const detail = state.objective || state.check || state.mode
       console.log(`    ${sessionId.slice(0, 8)}... - ${detail}`)
     }
   }
 
-  if (!pending && sessions.length === 0 && !paused) {
+  if (!pending && activeSessions.length === 0 && !paused) {
     console.log('  None active')
+  }
+
+  // Show registered sessions
+  if (registeredSessions.length > 0) {
+    console.log()
+    console.log(`Known sessions (${registeredSessions.length}):`)
+    for (const s of registeredSessions.slice(0, 5)) {
+      const age = Date.now() - new Date(s.lastSeen).getTime()
+      const ageStr = age < 60000 ? 'just now' :
+                     age < 3600000 ? `${Math.floor(age / 60000)}m ago` :
+                     `${Math.floor(age / 3600000)}h ago`
+      console.log(`  ${s.sessionId.slice(0, 8)}... - ${s.displayName} (${ageStr})`)
+    }
+    if (registeredSessions.length > 5) {
+      console.log(`  ... and ${registeredSessions.length - 5} more`)
+    }
   }
 
   console.log()
@@ -212,7 +292,7 @@ async function main(): Promise<void> {
       continuation.clearAllSessions()
       continuation.clearPause()
       console.log('All until loops cleared.')
-      await speak('Mission complete.')
+      await speak(renderTemplate('missionComplete', {}))
       break
 
     case 'pause':

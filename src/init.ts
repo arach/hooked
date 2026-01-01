@@ -174,13 +174,29 @@ async function runInstall(): Promise<void> {
   const configFile = join(HOOKED_HOME, 'config.json')
   if (!existsSync(configFile)) {
     writeFileSync(configFile, JSON.stringify({
-      activePreset: null,
       flags: {
         speak: true,
         logging: true,
+      },
+      templates: {
+        loopStarted: 'In {project}, loop started. {goal}',
+        checkPassed: 'In {project}, check passed. Loop complete.',
+        checkFailed: 'In {project}, check failed. Keep working.',
+        pausing: 'In {project}, pausing as requested.',
+        manualRound: 'In {project}, round {round}. Objective: {objective}',
+        missionComplete: 'Mission complete.',
       }
     }, null, 2))
     log('Created default config')
+  }
+
+  // 8. Clean up stale session registry entries (older than 24h)
+  try {
+    const { log: hookedLog } = await import('./core/log')
+    hookedLog.clearStaleSessions()
+    log('Cleaned up stale sessions')
+  } catch {
+    // Ignore if log module not available yet
   }
 
   console.log('')
@@ -190,12 +206,15 @@ async function runInstall(): Promise<void> {
   console.log('    - Voice notifications when Claude completes tasks')
   console.log('    - Session continuations to keep Claude working')
   console.log('')
-  console.log('  Continuation commands:')
-  console.log('    /hooked "objective"        Keep working toward goal')
-  console.log('    /hooked check "command"    Continue until command passes')
-  console.log('    /hooked off                Stop continuation')
-  console.log('    /hooked pause              Stop after next cycle')
-  console.log('    /hooked status             Show state')
+  console.log('  Voice:')
+  console.log('    hooked speak on|off        Toggle voice announcements')
+  console.log('')
+  console.log('  Continuations:')
+  console.log('    hooked until "objective"   Keep working toward goal')
+  console.log('    hooked until check "cmd"   Continue until command passes')
+  console.log('    hooked off                 Stop continuation')
+  console.log('    hooked pause               Stop after next cycle')
+  console.log('    hooked status              Show state')
   console.log('')
 }
 

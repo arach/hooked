@@ -31,7 +31,7 @@ Hooked adds:
 
 ### How It Works
 
-Hooked installs [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) that intercept events:
+Hooked installs [Claude Code hooks](https://code.claude.com/docs/en/hooks-guide) that intercept events:
 
 - **Notification hooks** — Trigger voice alerts on permission requests, errors, or when Claude is waiting
 - **Stop hooks** — Run your checks (tests, build, typecheck) when Claude tries to stop. If checks fail, Claude keeps working.
@@ -628,8 +628,8 @@ rm -rf /path/to/hooked
 
 ## Resources
 
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [Claude Code Hooks Reference](https://docs.anthropic.com/en/docs/claude-code/hooks)
+- [Claude Code Documentation](https://code.claude.com/docs/en/overview)
+- [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks-guide)
 - [SpeakEasy TTS Library](https://github.com/arach/speakeasy)
 - [Hooked GitHub Repository](https://github.com/arach/hooked)
 

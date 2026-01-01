@@ -21,7 +21,7 @@ function Navbar() {
           <Link href="/docs" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors">
             Docs
           </Link>
-          <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+          <a href="https://code.claude.com/docs/en/hooks-guide" target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-zinc-400 hover:text-white transition-colors">
             Claude Hooks
           </a>
           <div className="h-3 w-px bg-white/10" />
@@ -477,7 +477,7 @@ function Footer() {
 
         <div className="flex items-center gap-8 text-[11px] font-bold uppercase tracking-widest text-zinc-500">
           <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
-          <a href="https://docs.anthropic.com/en/docs/claude-code/hooks" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Claude Hooks</a>
+          <a href="https://code.claude.com/docs/en/hooks-guide" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Claude Hooks</a>
           <a href="https://github.com/arach/hooked" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-white transition-colors">
             <Github size={12} />
             GitHub

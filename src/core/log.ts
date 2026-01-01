@@ -1,5 +1,5 @@
 import { homedir } from 'os'
-import { existsSync, mkdirSync, appendFileSync, readFileSync } from 'fs'
+import { existsSync, mkdirSync, appendFileSync, readFileSync, writeFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 
 export interface HookEvent {
@@ -13,9 +13,17 @@ export interface HookEvent {
   meta?: Record<string, unknown>
 }
 
+export interface SessionInfo {
+  sessionId: string
+  projectFolder: string  // Claude's encoded folder name (e.g., Users-arach-dev-my-project)
+  displayName: string    // Human-friendly name for voice/display
+  lastSeen: string
+}
+
 // All hooked state lives in ~/.hooked/
 const HOOKED_HOME = join(homedir(), '.hooked')
 const HISTORY_DIR = join(HOOKED_HOME, 'history')
+const REGISTRY_FILE = join(HOOKED_HOME, 'sessions.json')
 
 function ensureDirs(): void {
   if (!existsSync(HOOKED_HOME)) {
@@ -64,8 +72,7 @@ export function getRecentEvents(limit = 50): HookEvent[] {
     return []
   }
 
-  const files = require('fs')
-    .readdirSync(HISTORY_DIR)
+  const files = readdirSync(HISTORY_DIR)
     .filter((f: string) => f.endsWith('.jsonl'))
     .sort()
     .reverse()
@@ -88,8 +95,72 @@ export function getRecentEvents(limit = 50): HookEvent[] {
   return events.slice(0, limit)
 }
 
+// ============ Session Registry ============
+
+type SessionRegistry = Record<string, SessionInfo>
+
+function getRegistry(): SessionRegistry {
+  if (!existsSync(REGISTRY_FILE)) return {}
+  try {
+    return JSON.parse(readFileSync(REGISTRY_FILE, 'utf-8'))
+  } catch {
+    return {}
+  }
+}
+
+function saveRegistry(registry: SessionRegistry): void {
+  ensureDirs()
+  writeFileSync(REGISTRY_FILE, JSON.stringify(registry, null, 2))
+}
+
+export function registerSession(sessionId: string, projectFolder: string, displayName: string): void {
+  const registry = getRegistry()
+  registry[sessionId] = {
+    sessionId,
+    projectFolder,
+    displayName,
+    lastSeen: new Date().toISOString(),
+  }
+  saveRegistry(registry)
+}
+
+export function getSessionByFolder(projectFolder: string): SessionInfo | null {
+  const registry = getRegistry()
+
+  // Find sessions matching this project folder, prefer most recent
+  const matches = Object.values(registry)
+    .filter(s => s.projectFolder === projectFolder)
+    .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
+
+  return matches[0] || null
+}
+
+export function getAllSessions(): SessionInfo[] {
+  const registry = getRegistry()
+  return Object.values(registry)
+    .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
+}
+
+export function clearStaleSessionsFromRegistry(maxAgeMs = 24 * 60 * 60 * 1000): void {
+  const registry = getRegistry()
+  const now = Date.now()
+
+  for (const [sessionId, info] of Object.entries(registry)) {
+    const age = now - new Date(info.lastSeen).getTime()
+    if (age > maxAgeMs) {
+      delete registry[sessionId]
+    }
+  }
+
+  saveRegistry(registry)
+}
+
 export const log = {
   event: logEvent,
   getSession: getSessionEvents,
   getRecent: getRecentEvents,
+  registerSession,
+  getSessionByFolder,
+  getAllSessions,
+  clearStaleSessions: clearStaleSessionsFromRegistry,
 }
