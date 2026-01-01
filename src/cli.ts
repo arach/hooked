@@ -357,13 +357,17 @@ function handleHistory(): void {
 }
 
 function printEvents(events: ReturnType<typeof history.getRecent>): void {
+  // Header
+  console.log(`${'TIME'.padEnd(8)} ${'TYPE'.padEnd(14)} ${'PROJECT'.padEnd(12)} ${'SESSION'.padEnd(8)}  MESSAGE`)
+  console.log('-'.repeat(80))
+
   for (const event of events) {
     const date = new Date(event.timestamp)
     const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     const sessionShort = event.session_id?.slice(0, 8) || '--------'
 
     // Compact single-line format with full message
-    const prefix = `${time} ${event.type.padEnd(14)} ${event.project.padEnd(12)} ${sessionShort}`
+    const prefix = `${time.padEnd(8)} ${event.type.padEnd(14)} ${event.project.padEnd(12)} ${sessionShort}`
     const msg = event.message || ''
     console.log(`${prefix}  ${msg}`)
 
