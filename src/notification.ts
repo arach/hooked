@@ -85,11 +85,11 @@ async function handleNotification(parsedPayload: NotificationPayload | null) {
 
   await speak(speechMessage);
 
-  // Track alert for reminders (if we have a session and alerts are enabled)
+  // Track alert for reminders (only for notifications that need user attention)
   const alertConfig = config.getAlertConfig();
-  if (sessionId && alertConfig.enabled && hookEventName !== 'Stop') {
-    const alertType = categorizeAlert(hookEventName, message);
+  const alertType = shouldAlert(hookEventName, message);
 
+  if (sessionId && alertConfig.enabled && alertType) {
     // Check if there's already an active reminder for this session
     const existingAlert = alerts.get(sessionId);
     const hasActiveReminder = existingAlert?.reminderPid != null;
@@ -111,21 +111,38 @@ async function handleNotification(parsedPayload: NotificationPayload | null) {
     } else {
       logger.info('Reminder already active for session, skipping spawn', { sessionId, pid: existingAlert.reminderPid });
     }
+  } else if (alertType === null) {
+    logger.info('Informational notification, no alert needed', { hookEventName, message });
   }
 
   // Print to console for hook feedback
   console.log(`🔊 ${speechMessage}`);
 }
 
-function categorizeAlert(hookEventName?: string, message?: string): string {
+/**
+ * Determine if this notification needs user attention (should create an alert).
+ * Returns the alert type if yes, null if it's just informational.
+ */
+function shouldAlert(hookEventName?: string, message?: string): string | null {
   const msg = (message || '').toLowerCase();
 
-  if (msg.includes('permission')) return 'permission';
-  if (msg.includes('error') || msg.includes('failed')) return 'error';
-  if (msg.includes('waiting') || msg.includes('input')) return 'input';
-  if (hookEventName === 'PermissionRequest') return 'permission';
+  // Permission requests - user MUST respond
+  if (msg.includes('permission') || hookEventName === 'PermissionRequest') {
+    return 'permission';
+  }
 
-  return 'notification';
+  // Waiting for input - user MUST respond
+  if (msg.includes('waiting') || msg.includes('input')) {
+    return 'input';
+  }
+
+  // Errors - user should see these
+  if (msg.includes('error') || msg.includes('failed')) {
+    return 'error';
+  }
+
+  // Everything else is informational - no alert needed
+  return null;
 }
 
 function spawnReminderProcess(sessionId: string): void {
