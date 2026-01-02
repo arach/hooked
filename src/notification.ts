@@ -110,6 +110,7 @@ async function handleNotification(parsedPayload: NotificationPayload | null) {
     alerts.set({
       sessionId,
       project: displayName,
+      cwd: projectFolder,
       type: alertType,
       message: message || hookEventName || 'Notification',
     });

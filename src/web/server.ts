@@ -308,6 +308,67 @@ const dashboardHtml = `<!DOCTYPE html>
 
     .empty { color: #52525b; padding: 40px; text-align: center; }
 
+    .clickable { cursor: pointer; }
+    .clickable:hover { background: #1f1f23; }
+
+    .session-detail {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .session-detail-content {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .session-detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #27272a;
+    }
+    .session-detail-close {
+      background: none;
+      border: none;
+      color: #71717a;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+    }
+    .session-detail-close:hover { color: #e4e4e7; }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #27272a;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { color: #52525b; }
+    .detail-value { color: #e4e4e7; text-align: right; word-break: break-all; max-width: 70%; }
+    .path-display {
+      font-size: 11px;
+      color: #71717a;
+      background: #09090b;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
     .tabs {
       display: flex;
       gap: 4px;
@@ -353,6 +414,7 @@ const dashboardHtml = `<!DOCTYPE html>
       const [autoRefresh, setAutoRefresh] = useState(true)
       const [limit, setLimit] = useState(100)
       const [tab, setTab] = useState('status')
+      const [selectedSession, setSelectedSession] = useState(null)  // For session detail view
 
       const fetchData = async () => {
         const [eventsRes, statsRes, configRes, statusRes] = await Promise.all([
@@ -511,7 +573,7 @@ const dashboardHtml = `<!DOCTYPE html>
                       .slice()
                       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                       .map(a => html\`
-                        <div class="setting-row" style="padding: 8px 0">
+                        <div class="setting-row clickable" style="padding: 8px 0" onClick=\${() => setSelectedSession(a)}>
                           <div style="flex: 1; min-width: 0">
                             <div class="setting-label" style="color: #60a5fa">\${a.project}</div>
                             <div class="setting-hint">\${a.type} · \${a.sessionId?.slice(0,6)}</div>
@@ -574,6 +636,50 @@ const dashboardHtml = `<!DOCTYPE html>
             \`}
           </div>
         </div>
+
+        \${selectedSession && html\`
+          <div class="session-detail" onClick=\${(e) => e.target === e.currentTarget && setSelectedSession(null)}>
+            <div class="session-detail-content">
+              <div class="session-detail-header">
+                <div>
+                  <h2 style="margin: 0; color: #e4e4e7; font-size: 16px">\${selectedSession.project}</h2>
+                  <div style="color: #52525b; font-size: 11px; margin-top: 4px">\${selectedSession.type}</div>
+                </div>
+                <button class="session-detail-close" onClick=\${() => setSelectedSession(null)}>×</button>
+              </div>
+
+              <div class="detail-row">
+                <span class="detail-label">Session ID</span>
+                <span class="detail-value">\${selectedSession.sessionId}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Message</span>
+                <span class="detail-value">\${selectedSession.message}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Waiting</span>
+                <span class="detail-value">\${Math.round((Date.now() - new Date(selectedSession.timestamp).getTime()) / 60000)} minutes</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Reminders sent</span>
+                <span class="detail-value">\${selectedSession.reminders || 0}</span>
+              </div>
+
+              \${selectedSession.cwd && html\`
+                <div style="margin-top: 16px">
+                  <div class="detail-label" style="margin-bottom: 4px">Full Path</div>
+                  <div class="path-display">\${selectedSession.cwd}</div>
+                </div>
+              \`}
+
+              <div style="margin-top: 16px">
+                <button style="width: 100%" onClick=\${() => { setFilter(selectedSession.sessionId?.slice(0,8) || ''); setSelectedSession(null); }}>
+                  Filter events by this session
+                </button>
+              </div>
+            </div>
+          </div>
+        \`}
       \`
     }
 

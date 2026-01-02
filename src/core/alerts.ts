@@ -16,6 +16,7 @@ const ALERTS_FILE = join(HOOKED_HOME, 'pending-alerts.json')
 export interface PendingAlert {
   sessionId: string
   project: string
+  cwd?: string           // Full path to project directory
   type: string           // 'permission', 'error', 'input', etc.
   message: string
   timestamp: string
