@@ -258,10 +258,11 @@ function UntilDemo() {
 
       {/* Description */}
       <div className="order-1 md:order-2 space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Until it works.</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Continue until it works.</h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
           Tell Claude what "done" means. Tests passing. Build succeeding.
           Lint clean. Claude keeps working until the check passes—or you say stop.
+          {" "}<a href="https://ghuntley.com/ralph/" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300">Be like Ralph.</a>
         </p>
         <div className="space-y-3 pt-4 text-sm">
           <div className="flex items-start gap-3">
