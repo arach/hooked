@@ -37,7 +37,7 @@ function Navbar() {
 // Hero
 function Hero() {
   const [copied, setCopied] = useState(false)
-  const command = "git clone https://github.com/arach/hooked && cd hooked && pnpm install && pnpm run hooked:init"
+  const command = "curl -fsSL https://raw.githubusercontent.com/arach/hooked/master/install.sh | bash"
 
   const handleCopy = () => {
     navigator.clipboard.writeText(command)
@@ -83,7 +83,7 @@ function Hero() {
         >
           <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 group hover:border-zinc-700 transition-colors">
             <code className="text-sm font-[family-name:var(--font-geist-mono)] text-zinc-300 mr-4">
-              git clone https://github.com/arach/hooked
+              curl -fsSL hooked.arach.dev/install | bash
             </code>
             <button
               onClick={handleCopy}

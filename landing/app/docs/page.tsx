@@ -66,32 +66,29 @@ Until loops are bound to specific Claude sessions using a "lazy binding" pattern
 
 ## Installation
 
-### 1. Clone the repository
+### One-liner (recommended)
+
+\`\`\`bash
+curl -fsSL https://raw.githubusercontent.com/arach/hooked/master/install.sh | bash
+\`\`\`
+
+This will automatically:
+- Download and set up hooked in \`~/.hooked/\`
+- Configure Claude Code's \`settings.json\` with hook definitions
+- Install the \`/hooked\` slash command
+
+### Manual installation
+
+If you prefer to install manually:
 
 \`\`\`bash
 git clone https://github.com/arach/hooked.git
 cd hooked
-\`\`\`
-
-### 2. Install dependencies
-
-\`\`\`bash
 pnpm install
-\`\`\`
-
-### 3. Run the setup script
-
-\`\`\`bash
 pnpm run hooked:init
 \`\`\`
 
-This will:
-- Create the \`~/.hooked/\` directory structure
-- Copy source files to \`~/.hooked/src/\`
-- Configure Claude Code's \`settings.json\` with hook definitions
-- Install the \`/hooked\` slash command
-
-### 4. (Optional) Set up SpeakEasy for voice announcements
+### (Optional) Set up SpeakEasy for voice announcements
 
 \`\`\`bash
 npm install -g @arach/speakeasy
