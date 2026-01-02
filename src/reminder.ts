@@ -28,10 +28,10 @@ async function main(): Promise<void> {
   const alertConfig = config.getAlertConfig();
   const reminderMs = alertConfig.reminderMinutes * 60 * 1000;
   const maxReminders = alertConfig.maxReminders;
-  const escalateAfter = alertConfig.escalateAfter;
+  const urgentAfterMinutes = alertConfig.urgentAfterMinutes;
 
   console.error(`[reminder] Started for session ${sessionId.slice(0, 8)}...`);
-  console.error(`[reminder] Config: remind every ${alertConfig.reminderMinutes}m, max ${maxReminders}, escalate after ${escalateAfter}`);
+  console.error(`[reminder] Config: remind every ${alertConfig.reminderMinutes}m, max ${maxReminders}, urgent after ${urgentAfterMinutes}m`);
 
   let reminderCount = 0;
 
@@ -60,8 +60,8 @@ async function main(): Promise<void> {
 
     console.error(`[reminder] Reminder #${reminderCount} for ${sessionId.slice(0, 8)} (${minutes}m old)`);
 
-    // Check if we should escalate
-    const shouldEscalate = escalateAfter > 0 && reminderCount >= escalateAfter;
+    // Check if we should escalate (time-based, 0 = never)
+    const shouldEscalate = urgentAfterMinutes > 0 && minutes >= urgentAfterMinutes;
 
     if (shouldEscalate) {
       // Escalation reminder

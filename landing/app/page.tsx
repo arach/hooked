@@ -186,64 +186,40 @@ function UntilDemo() {
           <div className="grid grid-cols-[1fr_auto] divide-x divide-zinc-800">
             {/* Left: Terminal output */}
             <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-4">
-              {/* Step 1: Set the loop */}
+              {/* You tell Claude what "done" means */}
               <div className="space-y-1">
-                <p className="text-zinc-500">$</p>
-                <p className="text-sky-400">hooked until check "pnpm test"</p>
-                <p className="text-zinc-400 mt-2">Until loop pending.</p>
-                <p className="text-zinc-500">Mode: check</p>
-                <p className="text-zinc-500">Command: pnpm test</p>
+                <p><span className="text-zinc-500">$ </span><span className="text-sky-400">hooked until check "pnpm test"</span></p>
+                <p className="text-zinc-400 mt-1">Ready. Claude will keep working until tests pass.</p>
               </div>
 
-              {/* Divider */}
-              <div className="border-t border-zinc-800/50 pt-4">
-                <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-2">Claude works...</p>
-              </div>
-
-              {/* Step 2: Check fails */}
-              <div className="space-y-1">
-                <p className="text-zinc-600"># Stop hook runs pnpm test</p>
+              {/* Claude works, tests fail */}
+              <div className="border-t border-zinc-800/50 pt-4 space-y-1">
+                <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-2">Claude tries to stop...</p>
                 <p className="text-red-400">FAIL  src/auth.test.ts</p>
-                <p className="text-zinc-500">Tests: 2 failed, 8 passed</p>
-                <p className="text-orange-400 mt-2">→ Keep working</p>
+                <p className="text-zinc-500">2 failed, 8 passed</p>
+                <p className="text-orange-400 mt-2">↳ Not done yet. Claude continues.</p>
               </div>
 
-              {/* Step 3: Check passes */}
-              <div className="space-y-1 border-t border-zinc-800/50 pt-4">
-                <p className="text-zinc-600"># After Claude fixes bugs...</p>
-                <p className="text-green-400">PASS  src/auth.test.ts</p>
-                <p className="text-zinc-500">Tests: 10 passed</p>
-                <p className="text-green-400 mt-2">→ Mission complete!</p>
+              {/* Claude works more, tests pass */}
+              <div className="border-t border-zinc-800/50 pt-4 space-y-1">
+                <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-2">Claude tries again...</p>
+                <p className="text-green-400">PASS  All tests</p>
+                <p className="text-zinc-500">10 passed</p>
+                <p className="text-green-400 mt-2">✓ Done!</p>
               </div>
             </div>
 
             {/* Right: Voice narration */}
-            <div className="p-4 w-48 bg-zinc-900/30 space-y-6">
-              <div className="space-y-2">
-                <p className="text-zinc-600 text-[10px] uppercase tracking-wider flex items-center gap-1">
-                  <Volume2 size={10} /> Voice
-                </p>
-              </div>
+            <div className="p-4 w-44 bg-zinc-900/30 space-y-4">
+              <p className="text-zinc-600 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <Volume2 size={10} /> Voice
+              </p>
 
               <div className="space-y-4 text-[11px]">
-                <div className="space-y-1">
-                  <p className="text-green-400">"Loop started."</p>
-                  <p className="text-zinc-500">"pnpm test"</p>
-                </div>
-
-                <div className="space-y-1 pt-2">
-                  <p className="text-orange-400">"Check failed."</p>
-                  <p className="text-zinc-500">"Keep working."</p>
-                </div>
-
-                <div className="space-y-1 pt-2">
-                  <p className="text-sky-400">"Round 2..."</p>
-                </div>
-
-                <div className="space-y-1 pt-2">
-                  <p className="text-green-400">"Check passed."</p>
-                  <p className="text-zinc-500">"Mission complete."</p>
-                </div>
+                <p className="text-green-400">"Working on it."</p>
+                <p className="text-orange-400 pt-3">"Tests failing. Fixing..."</p>
+                <p className="text-sky-400 pt-3">"Round 2."</p>
+                <p className="text-green-400 pt-3">"All tests passing."</p>
               </div>
             </div>
           </div>
@@ -252,11 +228,10 @@ function UntilDemo() {
 
       {/* Description */}
       <div className="order-1 md:order-2 space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Stop hook management.</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Until it works.</h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Keep Claude working until tests pass, build succeeds, or you say stop.
-          The stop hook evaluates a check command—if it fails, Claude continues.
-          Voice keeps you informed at each round.
+          Tell Claude what "done" means. Tests passing. Build succeeding.
+          Lint clean. Claude keeps working until the check passes—or you say stop.
         </p>
         <div className="space-y-3 pt-4 text-sm">
           <div className="flex items-start gap-3">
@@ -265,7 +240,7 @@ function UntilDemo() {
             </div>
             <div>
               <code className="text-sky-400 text-xs">hooked until check "pnpm test"</code>
-              <p className="text-zinc-500 text-xs mt-1">Set the success criteria</p>
+              <p className="text-zinc-500 text-xs mt-1">Define what "done" looks like</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -273,8 +248,8 @@ function UntilDemo() {
               <span className="text-sky-400 text-xs">2</span>
             </div>
             <div>
-              <span className="text-zinc-300 text-xs">Stop hook runs your check</span>
-              <p className="text-zinc-500 text-xs mt-1">Fail → keep working, Pass → done</p>
+              <span className="text-zinc-300 text-xs">Claude works, checks, repeats</span>
+              <p className="text-zinc-500 text-xs mt-1">Fails? Keep going. Passes? Stop.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -283,7 +258,7 @@ function UntilDemo() {
             </div>
             <div>
               <code className="text-sky-400 text-xs">hooked off</code>
-              <p className="text-zinc-500 text-xs mt-1">Or stop manually anytime</p>
+              <p className="text-zinc-500 text-xs mt-1">Override anytime</p>
             </div>
           </div>
         </div>

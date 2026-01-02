@@ -48,6 +48,7 @@ hooked - Voice & until loops for Claude Code
 
 Commands:
   status                Show current state
+  clear                 Clear all alerts and kill reminder processes
   web [port]            Open web dashboard (default: 3456)
 
 History:
@@ -66,6 +67,10 @@ Until:
   until check "cmd"     Keep working until command passes
   until off             Clear all until loops
   until pause           Stop after next cycle
+
+Integration:
+  statusline            Show Claude Code status line setup
+  id [prefix]           Expand short session ID to full UUID
 
 Examples:
   hooked status
@@ -238,22 +243,42 @@ function handleStatus(): void {
   console.log(`  Volume: ${Math.round(cfg.voice.volume * 100)}%`)
   console.log()
 
-  // Alerts section
-  console.log('Alerts:')
-  console.log(`  Reminders: ${cfg.alerts.enabled ? 'ON' : 'OFF'}`)
-  if (cfg.alerts.enabled) {
-    console.log(`  Remind every: ${cfg.alerts.reminderMinutes}m`)
-    console.log(`  Max reminders: ${cfg.alerts.maxReminders}`)
-    console.log(`  Escalate after: ${cfg.alerts.escalateAfter} reminders`)
-  }
+  // Upcoming reminders section
   if (pendingAlerts.length > 0) {
-    console.log(`  Pending (${pendingAlerts.length}):`)
+    console.log('Upcoming reminders:')
     for (const alert of pendingAlerts) {
-      const age = alerts.getAgeMinutes(alert)
-      console.log(`    ${alert.project}: ${alert.type} (${age}m, ${alert.reminders} reminders)`)
+      const ageMinutes = alerts.getAgeMinutes(alert)
+      const reminderInterval = cfg.alerts.reminderMinutes
+      const maxReminders = cfg.alerts.maxReminders
+
+      // Calculate time until next reminder
+      // Next reminder fires at: (reminders + 1) * reminderInterval minutes after alert created
+      const nextReminderAt = (alert.reminders + 1) * reminderInterval
+      const minutesUntilNext = nextReminderAt - ageMinutes
+
+      // Look up session to get path
+      const session = registeredSessions.find(s => s.sessionId === alert.sessionId)
+      const path = session ? project.folderToPath(session.projectFolder) : alert.project
+
+      console.log(`  ${path} (${alert.sessionId.slice(0, 8)})`)
+
+      if (maxReminders > 0 && alert.reminders >= maxReminders) {
+        console.log(`    waiting for ${alert.type} — no more reminders`)
+      } else if (minutesUntilNext <= 0) {
+        console.log(`    waiting for ${alert.type} — reminder soon`)
+      } else {
+        console.log(`    waiting for ${alert.type} — next in ${minutesUntilNext}m`)
+      }
     }
+    console.log()
   }
-  console.log()
+
+  // Alert settings (condensed)
+  if (cfg.alerts.enabled) {
+    const urgentStr = cfg.alerts.urgentAfterMinutes > 0 ? `, urgent after ${cfg.alerts.urgentAfterMinutes}m` : ''
+    console.log(`Reminders: every ${cfg.alerts.reminderMinutes}m, max ${cfg.alerts.maxReminders}${urgentStr}`)
+    console.log()
+  }
 
   // Until section
   console.log('Until:')
@@ -386,6 +411,91 @@ async function handleWeb(): Promise<void> {
   await new Promise(() => {})
 }
 
+function handleId(): void {
+  const prefix = args[0]?.toLowerCase()
+  const sessions = log.getAllSessions()
+
+  if (!prefix) {
+    // No prefix - list all with full IDs
+    if (sessions.length === 0) {
+      console.log('No known sessions.')
+      return
+    }
+    console.log('Known sessions:')
+    for (const s of sessions.slice(0, 10)) {
+      const path = project.folderToPath(s.projectFolder)
+      const projectName = path.split('/').pop() || 'unknown'
+      console.log(`  ${s.sessionId} - ${projectName}`)
+    }
+    return
+  }
+
+  // Find matching session
+  const matches = sessions.filter(s => s.sessionId.toLowerCase().startsWith(prefix))
+
+  if (matches.length === 0) {
+    console.log(`No session found matching "${prefix}"`)
+    return
+  }
+
+  if (matches.length === 1) {
+    const s = matches[0]
+    const path = project.folderToPath(s.projectFolder)
+    console.log(s.sessionId)
+    console.log(`  Project: ${path}`)
+    return
+  }
+
+  // Multiple matches
+  console.log(`Multiple sessions match "${prefix}":`)
+  for (const s of matches) {
+    const path = project.folderToPath(s.projectFolder)
+    const projectName = path.split('/').pop() || 'unknown'
+    console.log(`  ${s.sessionId} - ${projectName}`)
+  }
+}
+
+function handleStatusline(): void {
+  const hookedHome = process.env.HOME + '/.hooked'
+  const statuslineCmd = `${hookedHome}/node_modules/.bin/tsx ${hookedHome}/src/statusline.ts`
+
+  console.log(`
+=== Hooked Status Line for Claude Code ===
+
+Two modes available:
+
+1. VANILLA MODE (standalone)
+   Full statusline with session ID, hooked state, and tokens.
+
+   Add to ~/.claude/settings.json:
+   {
+     "statusLine": {
+       "type": "command",
+       "command": "${statuslineCmd}"
+     }
+   }
+
+   Output: myproject:a1b2c3 │ ⟳check │ 50k/200k
+
+2. WIDGET MODE (for ccstatusline, etc.)
+   Just hooked state - designed to embed in other statusline tools.
+
+   In ccstatusline, add a Custom Command widget:
+     Command: ${statuslineCmd} --widget
+     Timeout: 2000
+
+   Output: ⟳check 🔔3m (or empty if no hooked state)
+
+Symbols:
+  ⟳check    Active check loop
+  ⟳manual   Active manual loop
+  ⏳         Pending loop (not yet claimed)
+  ⏸          Paused
+  🔔3m       Alert waiting (with age)
+  🔇         Voice disabled
+`)
+}
+
 // Main router
 async function main(): Promise<void> {
   switch (command) {
@@ -420,6 +530,12 @@ async function main(): Promise<void> {
       console.log('Pause requested.')
       break
 
+    case 'clear':
+      // Clear all alerts and kill reminder processes
+      const { killed } = alerts.clearAll()
+      console.log(`Cleared all alerts.${killed.length > 0 ? ` Killed ${killed.length} reminder process(es).` : ''}`)
+      break
+
     case 'history':
     case 'h':
       handleHistory()
@@ -428,6 +544,14 @@ async function main(): Promise<void> {
     case 'web':
     case 'dashboard':
       await handleWeb()
+      break
+
+    case 'statusline':
+      handleStatusline()
+      break
+
+    case 'id':
+      handleId()
       break
 
     case 'help':

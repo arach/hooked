@@ -16,9 +16,9 @@ export interface SpeakTemplates {
 
 export interface AlertConfig {
   enabled: boolean
-  reminderMinutes: number   // How long before first reminder
-  maxReminders: number      // Max reminders before giving up (0 = unlimited)
-  escalateAfter: number     // Escalate after N reminders (0 = never)
+  reminderMinutes: number     // How often to remind
+  maxReminders: number        // Max reminders before giving up (0 = unlimited)
+  urgentAfterMinutes: number  // Escalate to "urgent" after N minutes (0 = never)
 }
 
 export interface VoiceConfig {
@@ -43,8 +43,8 @@ const DEFAULT_TEMPLATES: SpeakTemplates = {
   pausing: 'In {project}, pausing as requested.',
   manualRound: 'In {project}, round {round}. Objective: {objective}',
   missionComplete: 'Mission complete.',
-  alertReminder: 'Still waiting in {project}. {type}, {minutes} minutes.',
-  alertEscalation: 'Urgent! {project} needs attention. {type}, {minutes} minutes.',
+  alertReminder: 'Hey, {project} is still waiting.',
+  alertEscalation: 'Hey, {project} really needs you. {minutes} minutes now.',
 }
 
 const DEFAULT_VOICE: VoiceConfig = {
@@ -54,9 +54,9 @@ const DEFAULT_VOICE: VoiceConfig = {
 
 const DEFAULT_ALERTS: AlertConfig = {
   enabled: true,
-  reminderMinutes: 5,    // Remind after 5 minutes
-  maxReminders: 3,       // Then stop nagging
-  escalateAfter: 2,      // Get urgent on 2nd reminder
+  reminderMinutes: 5,       // Remind every 5 minutes
+  maxReminders: 3,          // Then stop nagging
+  urgentAfterMinutes: 0,    // Never escalate by default (0 = disabled)
 }
 
 const DEFAULT_CONFIG: HookedConfig = {
@@ -87,6 +87,13 @@ export function getConfig(): HookedConfig {
       volume: DEFAULT_VOICE.volume,
     }
 
+    // Migration: convert old escalateAfter (count) to urgentAfterMinutes (time)
+    const parsedAlerts = parsed.alerts as AlertConfig & { escalateAfter?: number } | undefined
+    const urgentAfterMinutes = parsedAlerts?.urgentAfterMinutes ??
+      (parsedAlerts?.escalateAfter
+        ? parsedAlerts.escalateAfter * (parsedAlerts.reminderMinutes ?? DEFAULT_ALERTS.reminderMinutes)
+        : DEFAULT_ALERTS.urgentAfterMinutes)
+
     return {
       ...DEFAULT_CONFIG,
       ...parsed,
@@ -96,7 +103,8 @@ export function getConfig(): HookedConfig {
       },
       alerts: {
         ...DEFAULT_ALERTS,
-        ...parsed.alerts,
+        ...parsedAlerts,
+        urgentAfterMinutes,
       },
       logging: parsed.logging ?? parsed.flags?.logging ?? DEFAULT_CONFIG.logging,
       templates: {

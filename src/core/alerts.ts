@@ -100,8 +100,24 @@ export function clearAlert(sessionId: string, reason: string = 'user_activity'):
   return true
 }
 
-export function clearAllAlerts(): void {
+export function clearAllAlerts(): { killed: number[] } {
+  const currentAlerts = getAlerts()
+  const killed: number[] = []
+
+  // Kill all reminder processes
+  for (const alert of Object.values(currentAlerts)) {
+    if (alert.reminderPid) {
+      try {
+        process.kill(alert.reminderPid)
+        killed.push(alert.reminderPid)
+      } catch {
+        // Process already dead, ignore
+      }
+    }
+  }
+
   saveAlerts({})
+  return { killed }
 }
 
 export function incrementReminder(sessionId: string): number {
