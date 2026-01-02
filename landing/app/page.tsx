@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink, Layers, Fingerprint, Monitor } from "lucide-react"
+import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink, Layers, Fingerprint, Monitor, Package } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Tweet } from "react-tweet"
@@ -25,7 +25,10 @@ function Navbar() {
             Claude Hooks
           </a>
           <div className="h-3 w-px bg-white/10" />
-          <a href="https://github.com/arach/hooked" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors">
+          <a href="https://www.npmjs.com/package/@arach/hooked" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors" title="npm package">
+            <Package size={16} />
+          </a>
+          <a href="https://github.com/arach/hooked" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors" title="GitHub repo">
             <Github size={16} />
           </a>
         </div>
@@ -99,6 +102,33 @@ function Hero() {
           >
             Read Docs
           </Link>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="flex items-center justify-center gap-4 mt-8"
+        >
+          <a
+            href="https://github.com/arach/hooked"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-white transition-colors"
+          >
+            <Github size={14} />
+            <span>arach/hooked</span>
+          </a>
+          <div className="h-3 w-px bg-zinc-800" />
+          <a
+            href="https://www.npmjs.com/package/@arach/hooked"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-white transition-colors"
+          >
+            <Package size={14} />
+            <span>@arach/hooked</span>
+          </a>
         </motion.div>
       </div>
     </section>
