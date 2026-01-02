@@ -2,10 +2,13 @@ import { SpeakEasy } from '@arach/speakeasy'
 import { config } from './config'
 import { history } from './history'
 
-// Create SpeakEasy instance
+// Get SpeakEasy instance with current volume from config
 // Configuration is managed by SpeakEasy via ~/.config/speakeasy/settings.json
 // Run `speakeasy config` to set up providers and API keys
-const speakEasy = new SpeakEasy({})
+function getSpeakEasy(): SpeakEasy {
+  const volume = config.getVoiceVolume()
+  return new SpeakEasy({ volume })
+}
 
 export interface SpeakOptions {
   priority?: 'high' | 'normal' | 'low'
@@ -43,9 +46,9 @@ export async function speak(message: string, options?: SpeakOptions): Promise<vo
   })
 
   try {
-    await speakEasy.speak(message, {
+    const speaker = getSpeakEasy()
+    await speaker.speak(message, {
       priority: options?.priority ?? 'high',
-      // Note: volume support depends on SpeakEasy/provider
     })
     console.error('[hooked:speak] Done speaking')
   } catch (error) {
