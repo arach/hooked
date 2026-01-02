@@ -55,6 +55,17 @@ hooked status
 4. If tests fail, Claude keeps working
 5. When tests pass, continuation auto-disables
 
+## Web Dashboard
+
+View history, configure settings, and monitor active alerts:
+
+```bash
+hooked web          # Opens at localhost:3456, auto-closes in 10m
+hooked web 8080 30  # Custom port, 30 minute timeout
+```
+
+![Web Dashboard](hooked-web.png)
+
 ## Configuration
 
 Config stored in `~/.hooked/config.json`:

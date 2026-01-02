@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink, Layers, Fingerprint } from "lucide-react"
+import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink, Layers, Fingerprint, Monitor } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Tweet } from "react-tweet"
@@ -313,6 +313,41 @@ function Features() {
   )
 }
 
+// Web Dashboard
+function WebDashboard() {
+  return (
+    <section className="py-20 px-6 max-w-5xl mx-auto border-t border-white/5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-[10px] font-bold text-sky-400 uppercase tracking-wider">
+            <Monitor size={12} /> Ephemeral Dashboard
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">See everything at a glance.</h2>
+          <p className="text-zinc-400 text-sm leading-relaxed">
+            Spin up a local dashboard to view event history, configure voice and alerts,
+            and see what's waiting on you. Auto-closes when you're done.
+          </p>
+          <div className="pt-4 font-[family-name:var(--font-geist-mono)] text-xs">
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 space-y-2">
+              <p><span className="text-zinc-500">$ </span><span className="text-sky-400">hooked web</span></p>
+              <p className="text-zinc-500">Starting dashboard on localhost:3456</p>
+              <p className="text-zinc-500">Auto-shutdown in 10 minutes</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg overflow-hidden border border-zinc-800 shadow-2xl">
+          <img
+            src="/hooked-web.png"
+            alt="Hooked Web Dashboard"
+            className="w-full"
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // Session-Scoped Feature Highlight
 function SessionScopedFeature() {
   return (
@@ -504,6 +539,7 @@ export default function Home() {
           <UntilDemo />
         </section>
 
+        <WebDashboard />
         <SessionScopedFeature />
         <Features />
         <SocialProof />
