@@ -23,10 +23,14 @@ export function pathToProjectFolder(path: string): string {
 
 /**
  * Reverse a project folder back to filesystem path.
- * Users-arach-dev-my-project → /Users/arach/dev/my-project
+ * -Users-arach-dev-my-project → /Users/arach/dev/my-project
+ * Users-arach-dev-my-project → /Users/arach/dev/my-project (legacy format)
  */
 export function folderToPath(folder: string): string {
-  return '/' + folder.replace(/-/g, '/')
+  // Claude encodes leading / as leading -, so just replace all - with /
+  const path = folder.replace(/-/g, '/')
+  // Ensure it starts with / (handles both formats)
+  return path.startsWith('/') ? path : '/' + path
 }
 
 /**

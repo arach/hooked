@@ -297,7 +297,9 @@ function handleStatus(): void {
       const ageStr = age < 60000 ? 'just now' :
                      age < 3600000 ? `${Math.floor(age / 60000)}m ago` :
                      `${Math.floor(age / 3600000)}h ago`
-      console.log(`  ${s.sessionId.slice(0, 8)}... - ${s.displayName} (${ageStr})`)
+      const decodedPath = project.folderToPath(s.projectFolder)
+      console.log(`  ${s.sessionId.slice(0, 8)}... - ${s.displayName}`)
+      console.log(`    ${decodedPath} (${ageStr})`)
     }
     if (registeredSessions.length > 5) {
       console.log(`  ... and ${registeredSessions.length - 5} more`)
