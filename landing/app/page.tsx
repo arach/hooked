@@ -368,7 +368,7 @@ function WebDashboard() {
 
         <div className="rounded-lg overflow-hidden border border-zinc-800 shadow-2xl">
           <img
-            src="/hooked-web.png"
+            src="https://raw.githubusercontent.com/arach/hooked/master/hooked-web.png"
             alt="Hooked Web Dashboard"
             className="w-full"
           />
