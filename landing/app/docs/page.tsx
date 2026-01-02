@@ -20,6 +20,7 @@ Voice announcements and session-scoped until loops for Claude Code.
 - [Quick Start](#quick-start)
 - [Speak (Voice)](#speak-voice)
 - [Until Loops](#until-loops)
+- [History & Dashboard](#history--dashboard)
 - [CLI Reference](#cli-reference)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
@@ -107,7 +108,7 @@ Follow the prompts to configure your TTS provider (ElevenLabs recommended).
 
 \`\`\`bash
 # Keep Claude working toward an objective
-hooked until "implement the auth system"
+hooked until "API docs are 100% coverage"
 
 # Or keep working until a command passes
 hooked until check "pnpm test"
@@ -117,8 +118,8 @@ hooked until check "pnpm test"
 
 1. You set a pending until loop
 2. Next time Claude tries to stop, it claims the loop
-3. Voice announces: "Loop started. implement the auth system"
-4. Claude keeps working, announcing each round: "Round 2. Objective: implement the auth system"
+3. Voice announces: "Loop started. API docs are 100% coverage"
+4. Claude keeps working, announcing each round: "Round 2. Objective: API docs are 100% coverage"
 5. When you're satisfied, run \`hooked off\`
 6. Voice announces: "Mission complete."
 
@@ -190,7 +191,7 @@ Until loops keep Claude working toward your goal. Two modes are available:
 Keep Claude working toward a stated objective until you say stop.
 
 \`\`\`bash
-hooked until "refactor the authentication module"
+hooked until "API docs are 100% coverage"
 \`\`\`
 
 Claude will keep working, announcing each round, until you run \`hooked off\`.
@@ -215,7 +216,7 @@ When Claude tries to stop:
 Until loops are bound to specific sessions:
 
 \`\`\`
-Terminal 1: hooked until "document modules"
+Terminal 1: hooked until "100% test coverage"
             → Creates pending.json
 
 Session A:  Claude tries to stop
@@ -236,6 +237,50 @@ Session A:  User runs: hooked off
 
 - **\`hooked off\`** — Immediately clears all until loops
 - **\`hooked pause\`** — Gracefully stops after the current cycle completes
+
+---
+
+## History & Dashboard
+
+Hooked logs all events to a SQLite database for review and analysis.
+
+### View Recent Events
+
+\`\`\`bash
+hooked history        # Last 20 events
+hooked history 50     # Last 50 events
+hooked history --full # Include full Claude payload
+\`\`\`
+
+### Search & Stats
+
+\`\`\`bash
+hooked history stats         # Event counts by project
+hooked history search "auth" # Search messages
+\`\`\`
+
+### Export & Cleanup
+
+\`\`\`bash
+hooked history export json > backup.json  # Export to JSON
+hooked history export csv > backup.csv    # Export to CSV
+hooked history prune 30                   # Delete events older than 30 days
+\`\`\`
+
+### Web Dashboard
+
+View your event history in a browser with filtering, search, and live updates:
+
+\`\`\`bash
+hooked web        # Opens http://localhost:3456
+hooked web 8080   # Custom port
+\`\`\`
+
+The dashboard shows:
+- Real-time event stream with auto-refresh
+- Filter by event type (notification, spoken, continuation, etc.)
+- Search across all events
+- Project statistics
 
 ---
 
@@ -277,6 +322,24 @@ hooked u off
 # Pause after next cycle
 hooked until pause
 hooked u pause
+\`\`\`
+
+### History
+
+\`\`\`bash
+hooked history [n]           # Show recent events (default: 20)
+hooked history stats         # Event counts by project
+hooked history search <q>    # Search events
+hooked history export [json|csv]  # Export all events
+hooked history prune [days]  # Delete old events (default: 30)
+hooked h 50                  # Short form
+\`\`\`
+
+### Web Dashboard
+
+\`\`\`bash
+hooked web [port]    # Open dashboard (default: 3456)
+hooked dashboard     # Alias for web
 \`\`\`
 
 ### Shortcuts
@@ -346,11 +409,11 @@ Customize what Claude says at each event. Available variables:
 ├── config.json       # Configuration
 ├── pending.json      # Pending until loop (waiting to be claimed)
 ├── sessions.json     # Session registry (project → session mapping)
+├── history.sqlite    # SQLite event history database
 ├── pause             # Pause flag (if present, next cycle stops)
 ├── state/            # Session-bound state files
 │   ├── {sessionId}.json
 │   └── ...
-├── history/          # Event logs
 └── src/              # Hook source files
 
 ~/.claude/

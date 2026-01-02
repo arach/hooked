@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 import { Github, Copy, Check, Play, Pause, Terminal, Volume2, Zap, ExternalLink, Layers, Fingerprint } from "lucide-react"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { Tweet } from "react-tweet"
 
 // Navbar
@@ -167,117 +167,125 @@ function VoiceAlertDemo() {
   )
 }
 
-// Until Demo
-const untilExamples = {
-  prompt: {
-    command: '/hooked until "implement auth"',
-    check: null,
-    description: "Keep working toward objective",
-    outcome: "Blocks until you run /hooked off",
-  },
-  test: {
-    command: '/hooked until check "pnpm test"',
-    check: "pnpm test",
-    description: "Keep working until tests pass",
-    outcome: "Auto-completes when check succeeds",
-  },
-  build: {
-    command: '/hooked until check "pnpm build"',
-    check: "pnpm build",
-    description: "Keep working until build succeeds",
-    outcome: "Auto-completes when check succeeds",
-  },
-  off: {
-    command: "/hooked off",
-    check: null,
-    description: "Clear all until loops",
-    outcome: "Mission complete announcement",
-  },
-}
-
+// Until Demo - Two-column terminal simulation
 function UntilDemo() {
-  const [activeExample, setActiveExample] = useState<keyof typeof untilExamples>("prompt")
-  const example = untilExamples[activeExample]
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-      <div className="order-2 md:order-1 space-y-4">
-        {/* Command */}
+      {/* Terminal simulation */}
+      <div className="order-2 md:order-1">
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
-          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
-            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Slash Command</span>
+          <div className="px-3 py-2 bg-zinc-900 border-b border-zinc-800 flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500/80" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+              <div className="w-3 h-3 rounded-full bg-green-500/80" />
+            </div>
+            <span className="text-zinc-500 text-[10px] ml-2">Terminal</span>
           </div>
-          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-sm">
-            <span className="text-sky-400">{example.command}</span>
-          </div>
-        </div>
 
-        {/* Description */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
-          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
-            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">What happens</span>
-          </div>
-          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-3">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeExample}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="space-y-3"
-              >
-                <p className="text-zinc-300">{example.description}</p>
-                {example.check ? (
-                  <div className="flex gap-6 pt-2">
-                    <div>
-                      <p className="text-zinc-600 text-[10px] mb-1">check fails →</p>
-                      <p className="text-orange-400">keep working</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-600 text-[10px] mb-1">check passes →</p>
-                      <p className="text-green-400">mission complete</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-zinc-500 pt-1">{example.outcome}</p>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
+          <div className="grid grid-cols-[1fr_auto] divide-x divide-zinc-800">
+            {/* Left: Terminal output */}
+            <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs space-y-4">
+              {/* Step 1: Set the loop */}
+              <div className="space-y-1">
+                <p className="text-zinc-500">$</p>
+                <p className="text-sky-400">hooked until check "pnpm test"</p>
+                <p className="text-zinc-400 mt-2">Until loop pending.</p>
+                <p className="text-zinc-500">Mode: check</p>
+                <p className="text-zinc-500">Command: pnpm test</p>
+              </div>
 
-        {/* Voice announcements */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
-          <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
-            <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Voice</span>
-          </div>
-          <div className="p-4 font-[family-name:var(--font-geist-mono)] text-xs text-zinc-400 space-y-2">
-            <p><span className="text-green-400">→</span> "Loop started. {activeExample === 'prompt' ? 'implement auth' : example.check}"</p>
-            <p><span className="text-sky-400">→</span> "Round 2. Objective: ..."</p>
-            <p><span className="text-orange-400">→</span> "Mission complete."</p>
+              {/* Divider */}
+              <div className="border-t border-zinc-800/50 pt-4">
+                <p className="text-zinc-600 text-[10px] uppercase tracking-wider mb-2">Claude works...</p>
+              </div>
+
+              {/* Step 2: Check fails */}
+              <div className="space-y-1">
+                <p className="text-zinc-600"># Stop hook runs pnpm test</p>
+                <p className="text-red-400">FAIL  src/auth.test.ts</p>
+                <p className="text-zinc-500">Tests: 2 failed, 8 passed</p>
+                <p className="text-orange-400 mt-2">→ Keep working</p>
+              </div>
+
+              {/* Step 3: Check passes */}
+              <div className="space-y-1 border-t border-zinc-800/50 pt-4">
+                <p className="text-zinc-600"># After Claude fixes bugs...</p>
+                <p className="text-green-400">PASS  src/auth.test.ts</p>
+                <p className="text-zinc-500">Tests: 10 passed</p>
+                <p className="text-green-400 mt-2">→ Mission complete!</p>
+              </div>
+            </div>
+
+            {/* Right: Voice narration */}
+            <div className="p-4 w-48 bg-zinc-900/30 space-y-6">
+              <div className="space-y-2">
+                <p className="text-zinc-600 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                  <Volume2 size={10} /> Voice
+                </p>
+              </div>
+
+              <div className="space-y-4 text-[11px]">
+                <div className="space-y-1">
+                  <p className="text-green-400">"Loop started."</p>
+                  <p className="text-zinc-500">"pnpm test"</p>
+                </div>
+
+                <div className="space-y-1 pt-2">
+                  <p className="text-orange-400">"Check failed."</p>
+                  <p className="text-zinc-500">"Keep working."</p>
+                </div>
+
+                <div className="space-y-1 pt-2">
+                  <p className="text-sky-400">"Round 2..."</p>
+                </div>
+
+                <div className="space-y-1 pt-2">
+                  <p className="text-green-400">"Check passed."</p>
+                  <p className="text-zinc-500">"Mission complete."</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Description */}
       <div className="order-1 md:order-2 space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Autonomous loops.</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Stop hook management.</h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Keep Claude working toward an objective. Set a goal or a check command—Claude
-          continues until it's done, with voice at each round.
+          Keep Claude working until tests pass, build succeeds, or you say stop.
+          The stop hook evaluates a check command—if it fails, Claude continues.
+          Voice keeps you informed at each round.
         </p>
-        <div className="flex flex-wrap gap-2 pt-4">
-          {(Object.keys(untilExamples) as Array<keyof typeof untilExamples>).map((key) => (
-            <button
-              key={key}
-              onClick={() => setActiveExample(key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                activeExample === key
-                  ? "bg-sky-500 text-white"
-                  : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
-              }`}
-            >
-              {key}
-            </button>
-          ))}
+        <div className="space-y-3 pt-4 text-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-5 h-5 rounded bg-sky-500/10 flex items-center justify-center mt-0.5 shrink-0">
+              <span className="text-sky-400 text-xs">1</span>
+            </div>
+            <div>
+              <code className="text-sky-400 text-xs">hooked until check "pnpm test"</code>
+              <p className="text-zinc-500 text-xs mt-1">Set the success criteria</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-5 h-5 rounded bg-sky-500/10 flex items-center justify-center mt-0.5 shrink-0">
+              <span className="text-sky-400 text-xs">2</span>
+            </div>
+            <div>
+              <span className="text-zinc-300 text-xs">Stop hook runs your check</span>
+              <p className="text-zinc-500 text-xs mt-1">Fail → keep working, Pass → done</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-5 h-5 rounded bg-sky-500/10 flex items-center justify-center mt-0.5 shrink-0">
+              <span className="text-sky-400 text-xs">3</span>
+            </div>
+            <div>
+              <code className="text-sky-400 text-xs">hooked off</code>
+              <p className="text-zinc-500 text-xs mt-1">Or stop manually anytime</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -354,7 +362,7 @@ function SessionScopedFeature() {
               </div>
               <div>
                 <span className="text-zinc-300">Set a pending objective:</span>
-                <code className="ml-2 text-sky-400 text-xs">/hooked until "Document API"</code>
+                <code className="ml-2 text-sky-400 text-xs">/hooked until "100% test coverage"</code>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -391,7 +399,7 @@ function SessionScopedFeature() {
               </div>
               <div className="text-zinc-500 text-[10px] space-y-1">
                 <p>mode: <span className="text-zinc-300">manual</span></p>
-                <p>objective: <span className="text-zinc-300">"Document API"</span></p>
+                <p>objective: <span className="text-zinc-300">"100% test coverage"</span></p>
                 <p>iteration: <span className="text-zinc-300">3</span></p>
               </div>
             </div>
