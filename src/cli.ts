@@ -49,7 +49,7 @@ hooked - Voice & until loops for Claude Code
 Commands:
   status                Show current state
   clear                 Clear all alerts and kill reminder processes
-  web [port]            Open web dashboard (default: 3456)
+  web [port] [mins]     Open web dashboard (default: 3456, auto-close: 10m)
 
 History:
   history [n]           Show recent events (default: 20)
@@ -406,9 +406,8 @@ function printEvents(events: ReturnType<typeof history.getRecent>): void {
 
 async function handleWeb(): Promise<void> {
   const port = args[0] ? parseInt(args[0], 10) : 3456
-  await startServer(port)
-  // Keep process alive
-  await new Promise(() => {})
+  const timeout = args[1] ? parseInt(args[1], 10) : 10  // default 10 minutes
+  await startServer(port, timeout)
 }
 
 function handleId(): void {
