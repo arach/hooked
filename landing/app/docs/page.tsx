@@ -77,9 +77,20 @@ This will automatically:
 - Configure Claude Code's \`settings.json\` with hook definitions
 - Install the \`/hooked\` slash command
 
-### Manual installation
+### npm / npx
 
-If you prefer to install manually:
+\`\`\`bash
+# Run directly with npx (no install)
+npx @arach/hooked init
+
+# Or install globally
+npm install -g @arach/hooked
+hooked init
+\`\`\`
+
+### For contributors
+
+Clone the repo to develop or customize hooked:
 
 \`\`\`bash
 git clone https://github.com/arach/hooked.git
@@ -574,7 +585,7 @@ export default function DocsPage() {
   }
 
   return (
-    <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-300`}>
+    <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-300 scroll-smooth`}>
       {/* Background */}
       {isDark && (
         <>
@@ -636,11 +647,11 @@ export default function DocsPage() {
               h1: ({ children }) => (
                 <h1 className={`text-4xl font-bold mb-8 ${theme.text}`}>{children}</h1>
               ),
-              h2: ({ children }) => (
-                <h2 className={`text-2xl font-semibold mt-12 mb-4 pb-2 border-b ${theme.cardBorder} ${theme.text}`}>{children}</h2>
+              h2: ({ children, id }) => (
+                <h2 id={id} className={`text-2xl font-semibold mt-12 mb-4 pb-2 border-b scroll-mt-20 ${theme.cardBorder} ${theme.text}`}>{children}</h2>
               ),
-              h3: ({ children }) => (
-                <h3 className={`text-xl font-medium mt-8 mb-3 ${theme.text}`}>{children}</h3>
+              h3: ({ children, id }) => (
+                <h3 id={id} className={`text-xl font-medium mt-8 mb-3 scroll-mt-20 ${theme.text}`}>{children}</h3>
               ),
               p: ({ children }) => (
                 <p className={`mb-4 leading-relaxed ${theme.textMuted}`}>{children}</p>

@@ -1,25 +1,31 @@
 {
-  "name": "hooked",
+  "name": "@arach/hooked",
   "version": "1.1.0",
-  "description": "TypeScript toolkit for Claude Code hooks - smart stop hooks, logging, and notifications",
+  "description": "Smart hooks for Claude Code - voice alerts, stop hook management, and until loops",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "bin": {
-    "hooked": "./dist/cli/index.js"
+    "hooked": "./dist/src/cli.js"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
     },
     "./stop": {
-      "types": "./dist/stop/index.d.ts",
-      "default": "./dist/stop/index.js"
+      "types": "./dist/src/stop/index.d.ts",
+      "default": "./dist/src/stop/index.js"
     }
   },
+  "files": [
+    "dist",
+    "src",
+    "install.sh"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "hooked:init": "npx tsx src/init.ts",
     "deploy": "bun run deploy.ts",
     "test": "bun src/test.ts",
@@ -28,13 +34,31 @@
   "keywords": [
     "claude",
     "claude-code",
+    "anthropic",
     "hooks",
     "stop-hooks",
+    "voice",
     "notifications",
+    "automation",
+    "cli",
     "typescript"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Arach Tehrani <arach@arach.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arach/hooked.git"
+  },
+  "homepage": "https://hooked.arach.dev",
+  "bugs": {
+    "url": "https://github.com/arach/hooked/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "@arach/speakeasy": "^0.1.6",
     "@clack/prompts": "^0.11.0",
@@ -42,7 +66,6 @@
     "better-sqlite3": "^12.5.0",
     "hono": "^4.11.3",
     "open": "^11.0.0",
-    "solid-js": "^1.9.10",
     "tsx": "^4.19.0",
     "winston": "^3.17.0",
     "zod": "^3.23.8"
@@ -51,6 +74,6 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
     "@types/winston": "^2.4.4",
-    "bun-types": "^1.0.0"
+    "typescript": "^5.0.0"
   }
 }

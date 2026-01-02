@@ -56,7 +56,8 @@
       "Bash(head:*)",
       "Bash(git restore:*)",
       "Bash(pkill:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm view:*)"
     ],
     "deny": []
   }
