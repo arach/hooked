@@ -39,16 +39,24 @@ function formatTokens(used?: number, max?: number): string {
 async function main(): Promise<void> {
   const isWidget = process.argv.includes('--widget')
 
-  // Read Claude's JSON input from stdin
+  // Read Claude's JSON input from stdin (with timeout for CLI use)
   let input: ClaudeStatusInput = {}
   try {
-    const chunks: Buffer[] = []
-    for await (const chunk of process.stdin) {
-      chunks.push(chunk)
-    }
-    const data = Buffer.concat(chunks).toString('utf-8')
-    if (data.trim()) {
-      input = JSON.parse(data)
+    // Skip stdin reading if it's a TTY (interactive terminal)
+    if (!process.stdin.isTTY) {
+      const chunks: Buffer[] = []
+      // Set a timeout to avoid hanging if no data comes
+      const timeout = new Promise<void>((resolve) => setTimeout(resolve, 100))
+      const readStdin = (async () => {
+        for await (const chunk of process.stdin) {
+          chunks.push(chunk)
+        }
+      })()
+      await Promise.race([readStdin, timeout])
+      const data = Buffer.concat(chunks).toString('utf-8')
+      if (data.trim()) {
+        input = JSON.parse(data)
+      }
     }
   } catch {
     // Continue with defaults
@@ -84,12 +92,16 @@ async function main(): Promise<void> {
     hookedParts.push('🔇')
   }
 
-  // Widget mode: just output hooked state (or nothing if no state)
+  // Widget mode: just output hooked state
   if (isWidget) {
-    if (hookedParts.length > 0) {
-      console.log(hookedParts.join(' '))
+    // Show global state even without session
+    const allAlerts = alerts.getAll()
+    if (allAlerts.length > 0 && hookedParts.length === 0) {
+      hookedParts.push(`🔔${allAlerts.length}`)
     }
-    // Output nothing if no hooked state - widget will be empty
+
+    const status = hookedParts.length > 0 ? hookedParts.join(' ') : '✓'
+    console.log(`hooked ${status}`)
     return
   }
 
