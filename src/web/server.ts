@@ -130,6 +130,13 @@ app.post('/api/alerts/clear', (c) => {
   return c.json({ success: true, ...result })
 })
 
+// Clear specific session alert
+app.post('/api/alerts/clear/:sessionId', (c) => {
+  const sessionId = c.req.param('sessionId')
+  const result = alerts.clear(sessionId)
+  return c.json({ success: result, sessionId })
+})
+
 // SpeakEasy config
 app.get('/api/speakeasy', (c) => {
   const cfg = getSpeakEasyConfig()
@@ -531,6 +538,12 @@ const dashboardHtml = `<!DOCTYPE html>
         fetchData()
       }
 
+      const clearSession = async (sessionId) => {
+        await fetch('/api/alerts/clear/' + sessionId, { method: 'POST' })
+        setSelectedSession(null)
+        fetchData()
+      }
+
       // Local config editing (no auto-save)
       const updateLocalConfig = (section, key, value) => {
         setEditingConfig(prev => ({
@@ -848,38 +861,43 @@ const dashboardHtml = `<!DOCTYPE html>
               <div class="session-detail-header">
                 <div>
                   <h2 style="margin: 0; color: #e4e4e7; font-size: 16px">\${selectedSession.project}</h2>
-                  <div style="color: #52525b; font-size: 11px; margin-top: 4px">\${selectedSession.type}</div>
+                  <div style="color: #52525b; font-size: 11px; margin-top: 4px">waiting for input</div>
                 </div>
                 <button class="session-detail-close" onClick=\${() => setSelectedSession(null)}>×</button>
               </div>
 
               <div class="detail-row">
                 <span class="detail-label">Session ID</span>
-                <span class="detail-value">\${selectedSession.sessionId}</span>
+                <span class="detail-value" style="font-family: monospace">\${selectedSession.sessionId}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Message</span>
-                <span class="detail-value">\${selectedSession.message}</span>
+                <span class="detail-value">\${selectedSession.message || 'Needs input'}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Waiting</span>
-                <span class="detail-value">\${Math.round((Date.now() - new Date(selectedSession.timestamp).getTime()) / 60000)} minutes</span>
+                <span class="detail-value" style="color: #fbbf24">\${Math.round((Date.now() - new Date(selectedSession.timestamp).getTime()) / 60000)} minutes</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Started</span>
+                <span class="detail-value">\${new Date(selectedSession.timestamp).toLocaleTimeString()}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Reminders sent</span>
                 <span class="detail-value">\${selectedSession.reminders || 0}</span>
               </div>
 
-              \${selectedSession.cwd && html\`
-                <div style="margin-top: 16px">
-                  <div class="detail-label" style="margin-bottom: 4px">Full Path</div>
-                  <div class="path-display">\${selectedSession.cwd}</div>
-                </div>
-              \`}
-
               <div style="margin-top: 16px">
-                <button style="width: 100%" onClick=\${() => { setFilter(selectedSession.sessionId?.slice(0,8) || ''); setSelectedSession(null); }}>
-                  Filter events by this session
+                <div class="detail-label" style="margin-bottom: 4px">Path</div>
+                <div class="path-display">\${(selectedSession.cwd || '').replace(/^\\/\\//, '/')}</div>
+              </div>
+
+              <div style="margin-top: 16px; display: flex; gap: 8px">
+                <button style="flex: 1" onClick=\${() => { setFilter(selectedSession.sessionId?.slice(0,8) || ''); setSelectedSession(null); }}>
+                  View events
+                </button>
+                <button style="flex: 1; background: #27272a; border-color: #3f3f46" onClick=\${() => clearSession(selectedSession.sessionId)}>
+                  Clear alert
                 </button>
               </div>
             </div>
