@@ -48,12 +48,17 @@ app.get('/api/status', (c) => {
   })
 })
 
-// Settings API
+// Full config API (for config tab)
 app.get('/api/config', (c) => {
-  const cfg = config.get()
+  return c.json(config.get())
+})
+
+// Sessions API
+app.get('/api/sessions', (c) => {
   return c.json({
-    voice: cfg.voice,
-    alerts: config.getAlertConfig(),
+    active: continuation.getActiveSessions(),
+    pending: continuation.getPending(),
+    paused: continuation.isPaused(),
   })
 })
 
@@ -407,14 +412,14 @@ const dashboardHtml = `<!DOCTYPE html>
     function App() {
       const [events, setEvents] = useState([])
       const [stats, setStats] = useState({ total: 0, byProject: [] })
-      const [config, setConfig] = useState({ voice: { enabled: true, volume: 1 }, alerts: {} })
+      const [config, setConfig] = useState({ voice: {}, alerts: {}, templates: {} })
       const [status, setStatus] = useState({ alerts: { pending: [] }, continuation: {} })
       const [filter, setFilter] = useState('')
       const [typeFilter, setTypeFilter] = useState('')
       const [autoRefresh, setAutoRefresh] = useState(true)
       const [limit, setLimit] = useState(100)
       const [tab, setTab] = useState('status')
-      const [selectedSession, setSelectedSession] = useState(null)  // For session detail view
+      const [selectedSession, setSelectedSession] = useState(null)
 
       const fetchData = async () => {
         const [eventsRes, statsRes, configRes, statusRes] = await Promise.all([
@@ -443,7 +448,7 @@ const dashboardHtml = `<!DOCTYPE html>
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates)
         }).then(r => r.json())
-        if (res.success) setConfig(res.config)
+        if (res.success) fetchData()
       }
 
       const clearAlerts = async () => {
@@ -469,173 +474,205 @@ const dashboardHtml = `<!DOCTYPE html>
 
       const types = [...new Set(events.map(e => e.type))]
 
-      return html\`
-        <h1>HOOKED <span>//</span> DASHBOARD \${autoRefresh && html\`<span class="status-dot on pulse"></span>\`}</h1>
-
-        <div class="grid">
-          <div>
-            <div class="stats">
-              <div class="stat">
-                <div class="stat-value">\${stats.total}</div>
-                <div class="stat-label">Events</div>
-              </div>
-              \${stats.byProject?.slice(0, 3).map(p => html\`
-                <div class="stat">
-                  <div class="stat-value">\${p.count}</div>
-                  <div class="stat-label">\${p.project}</div>
-                </div>
-              \`)}
+      // ============ STATUS TAB ============
+      const StatusTab = () => html\`
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-value">\${stats.total}</div>
+            <div class="stat-label">Events</div>
+          </div>
+          \${stats.byProject?.slice(0, 4).map(p => html\`
+            <div class="stat clickable" onClick=\${() => setFilter(p.project)}>
+              <div class="stat-value">\${p.count}</div>
+              <div class="stat-label">\${p.project}</div>
             </div>
+          \`)}
+        </div>
 
-            <h2>Event Log</h2>
-
-            <div class="controls">
-              <input
-                type="text"
-                placeholder="filter..."
-                value=\${filter}
-                onInput=\${e => setFilter(e.target.value)}
-                style="flex: 1"
-              />
-              <select value=\${typeFilter} onChange=\${e => setTypeFilter(e.target.value)}>
-                <option value="">all</option>
-                \${types.map(t => html\`<option value=\${t}>\${t}</option>\`)}
-              </select>
-              <select value=\${limit} onChange=\${e => setLimit(Number(e.target.value))}>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="250">250</option>
-              </select>
-              <button class=\${autoRefresh ? 'active' : ''} onClick=\${() => setAutoRefresh(!autoRefresh)}>
-                \${autoRefresh ? 'LIVE' : 'PAUSED'}
-              </button>
-            </div>
-
-            \${filteredEvents.length === 0
-              ? html\`<div class="empty">No events</div>\`
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px">
+          <div class="panel">
+            <h2 style="margin: 0 0 12px">Until Loops</h2>
+            \${!status.continuation?.pending && !status.continuation?.active?.length
+              ? html\`<div style="color: #52525b; font-size: 11px">None active</div>\`
               : html\`
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Time</th>
-                      <th>Type</th>
-                      <th>Project</th>
-                      <th>Session</th>
-                      <th>Message</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    \${filteredEvents.map(e => html\`
-                      <tr>
-                        <td class="time">\${formatTime(e.timestamp)}</td>
-                        <td><span class="badge badge-\${e.type}">\${e.type}</span></td>
-                        <td class="project">\${e.project}</td>
-                        <td class="session">\${e.session_id?.slice(0, 8) || '-'}</td>
-                        <td class="message">\${e.message || '-'}</td>
-                      </tr>
-                    \`)}
-                  </tbody>
-                </table>
+                \${status.continuation?.pending && html\`
+                  <div class="setting-row" style="padding: 8px 0">
+                    <div>
+                      <span style="color: #fbbf24">⏳ Pending</span>
+                      <div class="setting-hint">\${status.continuation.pending.mode}\${status.continuation.pending.check ? ': ' + status.continuation.pending.check : ''}</div>
+                    </div>
+                  </div>
+                \`}
+                \${(status.continuation?.active || []).map(s => html\`
+                  <div class="setting-row clickable" style="padding: 8px 0" onClick=\${() => setFilter(s.sessionId?.slice(0,8))}>
+                    <div>
+                      <span style="color: #22c55e">⟳ \${s.state?.mode || 'active'}</span>
+                      <div class="setting-hint">\${s.sessionId?.slice(0,8)} · round \${s.state?.iteration || 1}</div>
+                    </div>
+                  </div>
+                \`)}
+                \${status.continuation?.paused && html\`<div style="color: #f97316; font-size: 11px; margin-top: 8px">⏸ Paused</div>\`}
               \`
             }
           </div>
 
-          <div>
-            <div class="tabs">
-              <div class="tab \${tab === 'status' ? 'active' : ''}" onClick=\${() => setTab('status')}>Status</div>
-              <div class="tab \${tab === 'config' ? 'active' : ''}" onClick=\${() => setTab('config')}>Config</div>
-            </div>
-
-            \${tab === 'status' && html\`
-              <div class="panel" style="margin-bottom: 16px">
-                <div class="setting-row">
-                  <div class="setting-label">Until Loop</div>
-                  <div style="text-align: right">
-                    \${status.continuation?.pending || status.continuation?.active?.length > 0
-                      ? html\`<span style="color: #22c55e">\${status.continuation?.pending ? '⏳ Pending' : '⟳ Active'}</span>\`
-                      : html\`<span style="color: #52525b">Off</span>\`
-                    }
-                  </div>
-                </div>
-                \${(status.continuation?.pending || status.continuation?.active?.length > 0) && html\`
-                  <div style="padding: 4px 0 0; font-size: 11px; color: #52525b">
-                    \${status.continuation?.pending?.mode || status.continuation?.active?.[0]?.state?.mode}
-                    \${status.continuation?.pending?.check ? ': ' + status.continuation.pending.check : ''}
-                  </div>
-                \`}
-              </div>
-
-              <h2 style="margin-top: 0">Waiting</h2>
-              <div class="panel">
-                \${(status.alerts?.pending || []).length === 0
-                  ? html\`<div style="color: #52525b; font-size: 11px; padding: 8px 0">All clear</div>\`
-                  : (status.alerts?.pending || [])
-                      .slice()
-                      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                      .map(a => html\`
-                        <div class="setting-row clickable" style="padding: 8px 0" onClick=\${() => setSelectedSession(a)}>
-                          <div style="flex: 1; min-width: 0">
-                            <div class="setting-label" style="color: #60a5fa">\${a.project}</div>
-                            <div class="setting-hint">\${a.type} · \${a.sessionId?.slice(0,6)}</div>
-                          </div>
-                          <div style="text-align: right; flex-shrink: 0">
-                            <div style="color: #fbbf24; font-size: 12px">\${Math.round((Date.now() - new Date(a.timestamp).getTime()) / 60000)}m</div>
-                          </div>
-                        </div>
-                      \`)
-                }
-              </div>
-            \`}
-
-            \${tab === 'config' && html\`
-              <h2 style="margin-top: 0">Voice</h2>
-              <div class="panel" style="margin-bottom: 16px">
-                <div class="setting-row">
-                  <div class="setting-label">Enabled</div>
-                  <div class="toggle \${config.voice?.enabled ? 'on' : ''}" onClick=\${() => updateConfig({ voice: { enabled: !config.voice?.enabled } })}></div>
-                </div>
-                <div class="setting-row">
-                  <div>
-                    <div class="setting-label">Volume</div>
-                    <div class="setting-hint">\${Math.round((config.voice?.volume || 1) * 100)}%</div>
-                  </div>
-                  <input type="range" min="0" max="1" step="0.1" value=\${config.voice?.volume || 1} onInput=\${e => updateConfig({ voice: { volume: parseFloat(e.target.value) } })} />
-                </div>
-              </div>
-
-              <h2>Alerts</h2>
-              <div class="panel" style="margin-bottom: 16px">
-                <div class="setting-row">
-                  <div class="setting-label">Enabled</div>
-                  <div class="toggle \${config.alerts?.enabled ? 'on' : ''}" onClick=\${() => updateConfig({ alerts: { enabled: !config.alerts?.enabled } })}></div>
-                </div>
-                <div class="setting-row">
-                  <div>
-                    <div class="setting-label">Remind every</div>
-                    <div class="setting-hint">minutes</div>
-                  </div>
-                  <input type="number" min="1" max="60" value=\${config.alerts?.reminderMinutes || 5} onChange=\${e => updateConfig({ alerts: { reminderMinutes: parseInt(e.target.value) } })} />
-                </div>
-                <div class="setting-row">
-                  <div>
-                    <div class="setting-label">Max reminders</div>
-                    <div class="setting-hint">0 = unlimited</div>
-                  </div>
-                  <input type="number" min="0" max="20" value=\${config.alerts?.maxReminders || 0} onChange=\${e => updateConfig({ alerts: { maxReminders: parseInt(e.target.value) } })} />
-                </div>
-                <div class="setting-row">
-                  <div>
-                    <div class="setting-label">Urgent after</div>
-                    <div class="setting-hint">minutes (0 = never)</div>
-                  </div>
-                  <input type="number" min="0" max="60" value=\${config.alerts?.urgentAfterMinutes || 0} onChange=\${e => updateConfig({ alerts: { urgentAfterMinutes: parseInt(e.target.value) } })} />
-                </div>
-              </div>
-
-              <button class="danger" style="width: 100%" onClick=\${clearAlerts}>Clear All Alerts</button>
-            \`}
+          <div class="panel">
+            <h2 style="margin: 0 0 12px">Waiting for Input</h2>
+            \${(status.alerts?.pending || []).length === 0
+              ? html\`<div style="color: #52525b; font-size: 11px">All clear</div>\`
+              : (status.alerts?.pending || [])
+                  .slice()
+                  .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                  .slice(0, 5)
+                  .map(a => html\`
+                    <div class="setting-row clickable" style="padding: 6px 0" onClick=\${() => setSelectedSession(a)}>
+                      <div style="flex: 1; min-width: 0">
+                        <span style="color: #60a5fa">\${a.project}</span>
+                        <span style="color: #52525b; margin-left: 8px">\${a.sessionId?.slice(0,6)}</span>
+                      </div>
+                      <span style="color: #fbbf24">\${Math.round((Date.now() - new Date(a.timestamp).getTime()) / 60000)}m</span>
+                    </div>
+                  \`)
+            }
           </div>
         </div>
+
+        <div class="panel">
+          <h2 style="margin: 0 0 12px">Projects</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            \${(stats.byProject || []).map(p => html\`
+              <div class="clickable" style="padding: 6px 12px; background: #09090b; border: 1px solid #27272a; border-radius: 4px" onClick=\${() => setFilter(p.project)}>
+                <span style="color: #60a5fa">\${p.project}</span>
+                <span style="color: #52525b; margin-left: 8px">\${p.count}</span>
+              </div>
+            \`)}
+          </div>
+        </div>
+
+        <h2>Event Log</h2>
+        <div class="controls">
+          <input type="text" placeholder="filter..." value=\${filter} onInput=\${e => setFilter(e.target.value)} style="flex: 1" />
+          \${filter && html\`<button onClick=\${() => setFilter('')}>Clear</button>\`}
+          <select value=\${typeFilter} onChange=\${e => setTypeFilter(e.target.value)}>
+            <option value="">all types</option>
+            \${types.map(t => html\`<option value=\${t}>\${t}</option>\`)}
+          </select>
+          <select value=\${limit} onChange=\${e => setLimit(Number(e.target.value))}>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="250">250</option>
+          </select>
+          <button class=\${autoRefresh ? 'active' : ''} onClick=\${() => setAutoRefresh(!autoRefresh)}>
+            \${autoRefresh ? 'LIVE' : 'PAUSED'}
+          </button>
+        </div>
+
+        \${filteredEvents.length === 0
+          ? html\`<div class="empty">No events</div>\`
+          : html\`
+            <table>
+              <thead>
+                <tr><th>Time</th><th>Type</th><th>Project</th><th>Session</th><th>Message</th></tr>
+              </thead>
+              <tbody>
+                \${filteredEvents.map(e => html\`
+                  <tr class="clickable" onClick=\${() => setFilter(e.session_id?.slice(0,8) || e.project)}>
+                    <td class="time">\${formatTime(e.timestamp)}</td>
+                    <td><span class="badge badge-\${e.type}">\${e.type}</span></td>
+                    <td class="project">\${e.project}</td>
+                    <td class="session">\${e.session_id?.slice(0, 8) || '-'}</td>
+                    <td class="message">\${e.message || '-'}</td>
+                  </tr>
+                \`)}
+              </tbody>
+            </table>
+          \`
+        }
+      \`
+
+      // ============ CONFIG TAB ============
+      const ConfigTab = () => html\`
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px">
+          <div>
+            <div class="panel" style="margin-bottom: 16px">
+              <h2 style="margin: 0 0 16px">Voice</h2>
+              <div class="setting-row">
+                <span class="setting-label">Enabled</span>
+                <div class="toggle \${config.voice?.enabled ? 'on' : ''}" onClick=\${() => updateConfig({ voice: { enabled: !config.voice?.enabled } })}></div>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <span class="setting-label">Volume</span>
+                  <div class="setting-hint">\${Math.round((config.voice?.volume || 1) * 100)}%</div>
+                </div>
+                <input type="range" min="0" max="1" step="0.1" value=\${config.voice?.volume || 1} onInput=\${e => updateConfig({ voice: { volume: parseFloat(e.target.value) } })} />
+              </div>
+            </div>
+
+            <div class="panel" style="margin-bottom: 16px">
+              <h2 style="margin: 0 0 16px">Alerts</h2>
+              <div class="setting-row">
+                <span class="setting-label">Enabled</span>
+                <div class="toggle \${config.alerts?.enabled ? 'on' : ''}" onClick=\${() => updateConfig({ alerts: { enabled: !config.alerts?.enabled } })}></div>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <span class="setting-label">Remind every</span>
+                  <div class="setting-hint">minutes</div>
+                </div>
+                <input type="number" min="1" max="60" value=\${config.alerts?.reminderMinutes || 5} onChange=\${e => updateConfig({ alerts: { reminderMinutes: parseInt(e.target.value) } })} />
+              </div>
+              <div class="setting-row">
+                <div>
+                  <span class="setting-label">Max reminders</span>
+                  <div class="setting-hint">0 = unlimited</div>
+                </div>
+                <input type="number" min="0" max="20" value=\${config.alerts?.maxReminders || 0} onChange=\${e => updateConfig({ alerts: { maxReminders: parseInt(e.target.value) } })} />
+              </div>
+              <div class="setting-row">
+                <div>
+                  <span class="setting-label">Urgent after</span>
+                  <div class="setting-hint">minutes (0 = never)</div>
+                </div>
+                <input type="number" min="0" max="60" value=\${config.alerts?.urgentAfterMinutes || 0} onChange=\${e => updateConfig({ alerts: { urgentAfterMinutes: parseInt(e.target.value) } })} />
+              </div>
+              <button class="danger" style="width: 100%; margin-top: 12px" onClick=\${clearAlerts}>Clear All Alerts</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel" style="margin-bottom: 16px">
+              <h2 style="margin: 0 0 16px">Templates</h2>
+              \${Object.entries(config.templates || {}).map(([key, val]) => html\`
+                <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 4px">
+                  <span class="setting-label" style="font-size: 10px; color: #52525b">\${key}</span>
+                  <span style="color: #a1a1aa; font-size: 11px; word-break: break-all">\${val}</span>
+                </div>
+              \`)}
+              \${!config.templates || Object.keys(config.templates).length === 0
+                ? html\`<div style="color: #52525b; font-size: 11px">No templates configured</div>\`
+                : ''
+              }
+            </div>
+
+            <div class="panel">
+              <h2 style="margin: 0 0 16px">Raw Config</h2>
+              <pre style="background: #09090b; padding: 12px; border-radius: 4px; font-size: 10px; color: #71717a; overflow-x: auto; max-height: 300px">\${JSON.stringify(config, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      \`
+
+      return html\`
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
+          <h1 style="margin: 0">HOOKED <span>//</span> DASHBOARD \${autoRefresh && html\`<span class="status-dot on pulse"></span>\`}</h1>
+          <div class="tabs" style="margin: 0; border: none; padding: 0">
+            <div class="tab \${tab === 'status' ? 'active' : ''}" onClick=\${() => setTab('status')}>Status</div>
+            <div class="tab \${tab === 'config' ? 'active' : ''}" onClick=\${() => setTab('config')}>Config</div>
+          </div>
+        </div>
+
+        \${tab === 'status' ? StatusTab() : ConfigTab()}
 
         \${selectedSession && html\`
           <div class="session-detail" onClick=\${(e) => e.target === e.currentTarget && setSelectedSession(null)}>
