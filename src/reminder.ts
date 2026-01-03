@@ -64,11 +64,13 @@ async function main(): Promise<void> {
     const shouldEscalate = urgentAfterMinutes > 0 && minutes >= urgentAfterMinutes;
 
     if (shouldEscalate) {
-      // Escalation reminder
+      // Escalation reminder - only show minutes if >= 10
+      const minutesSuffix = minutes >= 10 ? ` ${minutes} minutes.` : '';
       const message = renderTemplate('alertEscalation', {
         project: alert.project,
         type: alert.type,
         minutes,
+        minutesSuffix,
       });
       await speak(message, { priority: 'high', sessionId });
 

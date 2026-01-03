@@ -151,7 +151,7 @@ function shouldAlert(hookEventName?: string, message?: string): string | null {
 
   // Errors - user should see these
   if (msg.includes('error') || msg.includes('failed')) {
-    return 'error';
+    return 'attention';
   }
 
   // Everything else is informational - no alert needed
