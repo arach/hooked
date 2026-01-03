@@ -48,7 +48,9 @@ hooked - Voice & until loops for Claude Code
 
 Commands:
   status                Show current state
-  clear                 Clear all alerts and kill reminder processes
+  clear                 Clear alerts for current project
+  clear <id>            Clear alert by session ID prefix
+  clear all             Clear ALL alerts globally
   web [port] [mins]     Open web dashboard (default: 3456, auto-close: 10m)
 
 History:
@@ -70,6 +72,8 @@ Until:
 
 Integration:
   statusline            Show Claude Code status line setup
+  alert                 Show all active alerts
+  alert widget          Compact output for ccstatusline slot
   id [prefix]           Expand short session ID to full UUID
 
 Examples:
@@ -410,6 +414,67 @@ async function handleWeb(): Promise<void> {
   await startServer(port, timeout)
 }
 
+function handleClear(): void {
+  const subcommand = args[0]?.toLowerCase()
+
+  // Clear all alerts
+  if (subcommand === 'all') {
+    const { killed } = alerts.clearAll()
+    console.log(`Cleared all alerts.${killed.length > 0 ? ` Killed ${killed.length} reminder process(es).` : ''}`)
+    return
+  }
+
+  // Clear by session ID prefix
+  if (subcommand && subcommand.length >= 4) {
+    const allAlerts = alerts.getAll()
+    const matching = allAlerts.filter(a => a.sessionId.toLowerCase().startsWith(subcommand))
+
+    if (matching.length === 0) {
+      console.log(`No alerts found matching "${subcommand}"`)
+      return
+    }
+
+    for (const alert of matching) {
+      alerts.clear(alert.sessionId, 'manual_clear')
+      console.log(`Cleared alert for ${alert.project} (${alert.sessionId.slice(0, 8)})`)
+    }
+    return
+  }
+
+  // Default: try to clear for current project
+  const currentSession = getCurrentSession()
+  const folder = getCurrentProjectFolder()
+  const displayName = getCurrentDisplayName()
+
+  // Find alerts for current session or project (exact match)
+  const allAlerts = alerts.getAll()
+  let targetAlerts = currentSession
+    ? allAlerts.filter(a => a.sessionId === currentSession.sessionId)
+    : allAlerts.filter(a => a.project === displayName)
+
+  if (targetAlerts.length === 0) {
+    // No alerts for current project, show all
+    if (allAlerts.length === 0) {
+      console.log('No active alerts.')
+    } else {
+      console.log(`No alerts for ${displayName}.`)
+      console.log('\nActive alerts:')
+      for (const alert of allAlerts) {
+        const age = alerts.getAgeMinutes(alert)
+        console.log(`  ${alert.sessionId.slice(0, 8)}  ${alert.project.padEnd(12)} ${alert.type.padEnd(10)} ${age}m ago`)
+      }
+      console.log('\nUse: hooked clear <session-prefix> or hooked clear all')
+    }
+    return
+  }
+
+  // Clear matching alerts
+  for (const alert of targetAlerts) {
+    alerts.clear(alert.sessionId, 'manual_clear')
+    console.log(`Cleared: ${alert.project} (${alert.type}, ${alerts.getAgeMinutes(alert)}m old)`)
+  }
+}
+
 function handleId(): void {
   const prefix = args[0]?.toLowerCase()
   const sessions = log.getAllSessions()
@@ -452,6 +517,47 @@ function handleId(): void {
     const projectName = path.split('/').pop() || 'unknown'
     console.log(`  ${s.sessionId} - ${projectName}`)
   }
+}
+
+function handleAlert(): void {
+  const subcommand = args[0]?.toLowerCase()
+
+  // Widget mode for ccstatusline - outputs compact single line
+  if (subcommand === 'widget' || subcommand === 'w') {
+    const currentSession = getCurrentSession()
+    const folder = getCurrentProjectFolder()
+    const displayName = getCurrentDisplayName()
+    const allAlerts = alerts.getAll()
+
+    // Find alert for current session/project (exact match on project name)
+    let alert = currentSession
+      ? allAlerts.find(a => a.sessionId === currentSession.sessionId)
+      : allAlerts.find(a => a.project === displayName)
+
+    if (alert) {
+      const age = alerts.getAgeMinutes(alert)
+      const typeShort = alert.type === 'permission' ? '🔐' : alert.type === 'input' ? '💬' : '⚠️'
+      console.log(`${typeShort} ${age}m`)
+    }
+    // Output nothing if no alert (statusline stays clean)
+    return
+  }
+
+  // Full mode - show all alerts
+  const allAlerts = alerts.getAll()
+
+  if (allAlerts.length === 0) {
+    console.log('No active alerts.')
+    return
+  }
+
+  console.log('Active alerts:\n')
+  for (const alert of allAlerts) {
+    const age = alerts.getAgeMinutes(alert)
+    const status = age < 5 ? '🟢' : age < 15 ? '🟡' : '🔴'
+    console.log(`${status} ${alert.sessionId.slice(0, 8)}  ${alert.project.padEnd(12)} ${alert.type.padEnd(10)} ${age}m`)
+  }
+  console.log('\nUse: hooked clear <id> to dismiss')
 }
 
 function handleStatusline(): void {
@@ -530,9 +636,7 @@ async function main(): Promise<void> {
       break
 
     case 'clear':
-      // Clear all alerts and kill reminder processes
-      const { killed } = alerts.clearAll()
-      console.log(`Cleared all alerts.${killed.length > 0 ? ` Killed ${killed.length} reminder process(es).` : ''}`)
+      handleClear()
       break
 
     case 'history':
@@ -547,6 +651,11 @@ async function main(): Promise<void> {
 
     case 'statusline':
       handleStatusline()
+      break
+
+    case 'alert':
+    case 'alerts':
+      handleAlert()
       break
 
     case 'id':
