@@ -112,6 +112,11 @@ app.post('/api/config', async (c) => {
       cfg.alerts = alertCfg
     }
 
+    // Update templates
+    if (body.templates !== undefined && typeof body.templates === 'object') {
+      cfg.templates = { ...cfg.templates, ...body.templates }
+    }
+
     config.save(cfg)
     return c.json({ success: true, config: { voice: cfg.voice, alerts: config.getAlertConfig() } })
   } catch (err) {
@@ -329,14 +334,22 @@ const dashboardHtml = `<!DOCTYPE html>
       border-radius: 2px;
       border: none;
       width: 100px;
+      margin: 0;
+      padding: 0;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       background: #22c55e;
       border-radius: 50%;
       cursor: pointer;
+      margin-top: -5px;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      background: #27272a;
+      border-radius: 2px;
     }
 
     input[type="number"] {
@@ -477,6 +490,8 @@ const dashboardHtml = `<!DOCTYPE html>
       const [limit, setLimit] = useState(100)
       const [tab, setTab] = useState('status')
       const [selectedSession, setSelectedSession] = useState(null)
+      const [editingTemplates, setEditingTemplates] = useState({})
+      const [templatesDirty, setTemplatesDirty] = useState(false)
 
       const fetchData = async () => {
         const [eventsRes, statsRes, configRes, statusRes, speakeasyRes] = await Promise.all([
@@ -523,6 +538,23 @@ const dashboardHtml = `<!DOCTYPE html>
         await fetch('/api/alerts/clear', { method: 'POST' })
         fetchData()
       }
+
+      const updateTemplate = (key, value) => {
+        setEditingTemplates(prev => ({ ...prev, [key]: value }))
+        setTemplatesDirty(true)
+      }
+
+      const saveTemplates = async () => {
+        await updateConfig({ templates: editingTemplates })
+        setTemplatesDirty(false)
+      }
+
+      // Initialize editing templates from config
+      useEffect(() => {
+        if (config.templates && Object.keys(editingTemplates).length === 0) {
+          setEditingTemplates(config.templates)
+        }
+      }, [config.templates])
 
       const filteredEvents = events.filter(e => {
         if (typeFilter && e.type !== typeFilter) return false
@@ -588,7 +620,8 @@ const dashboardHtml = `<!DOCTYPE html>
             <h2 style="margin: 0 0 12px">Waiting for Input</h2>
             \${(status.alerts?.pending || []).length === 0
               ? html\`<div style="color: #52525b; font-size: 11px">All clear</div>\`
-              : (status.alerts?.pending || [])
+              : html\`
+                \${(status.alerts?.pending || [])
                   .slice()
                   .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                   .slice(0, 5)
@@ -600,7 +633,9 @@ const dashboardHtml = `<!DOCTYPE html>
                       </div>
                       <span style="color: #fbbf24">\${Math.round((Date.now() - new Date(a.timestamp).getTime()) / 60000)}m</span>
                     </div>
-                  \`)
+                  \`)}
+                <button class="danger" style="width: 100%; margin-top: 12px; font-size: 11px" onClick=\${clearAlerts}>Clear All</button>
+              \`
             }
           </div>
         </div>
@@ -729,17 +764,24 @@ const dashboardHtml = `<!DOCTYPE html>
                 </div>
                 <input type="number" min="0" max="60" value=\${config.alerts?.urgentAfterMinutes || 0} onChange=\${e => updateConfig({ alerts: { urgentAfterMinutes: parseInt(e.target.value) } })} />
               </div>
-              <button class="danger" style="width: 100%; margin-top: 12px" onClick=\${clearAlerts}>Clear All Alerts</button>
             </div>
           </div>
 
           <div>
             <div class="panel" style="margin-bottom: 16px">
-              <h2 style="margin: 0 0 16px">Templates</h2>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px">
+                <h2 style="margin: 0">Templates</h2>
+                \${templatesDirty && html\`<button style="font-size: 11px; padding: 4px 12px" onClick=\${saveTemplates}>Save</button>\`}
+              </div>
               \${Object.entries(config.templates || {}).map(([key, val]) => html\`
                 <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 4px">
                   <span class="setting-label" style="font-size: 10px; color: #52525b">\${key}</span>
-                  <span style="color: #a1a1aa; font-size: 11px; word-break: break-all">\${val}</span>
+                  <input
+                    type="text"
+                    value=\${editingTemplates[key] ?? val}
+                    onInput=\${e => updateTemplate(key, e.target.value)}
+                    style="width: 100%; font-size: 11px; padding: 6px 8px; background: #09090b"
+                  />
                 </div>
               \`)}
               \${!config.templates || Object.keys(config.templates).length === 0
