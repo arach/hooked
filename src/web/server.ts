@@ -11,7 +11,24 @@ import { history } from '../core/history'
 import { config } from '../core/config'
 import { continuation } from '../continuation'
 import { alerts } from '../core/alerts'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { join } from 'path'
+import { homedir } from 'os'
 import open from 'open'
+
+// SpeakEasy config path
+const SPEAKEASY_CONFIG = join(homedir(), '.config', 'speakeasy', 'settings.json')
+
+function getSpeakEasyConfig() {
+  if (!existsSync(SPEAKEASY_CONFIG)) return null
+  try {
+    return JSON.parse(readFileSync(SPEAKEASY_CONFIG, 'utf-8'))
+  } catch { return null }
+}
+
+function saveSpeakEasyConfig(cfg: any) {
+  writeFileSync(SPEAKEASY_CONFIG, JSON.stringify(cfg, null, 2))
+}
 
 const app = new Hono()
 
@@ -106,6 +123,45 @@ app.post('/api/config', async (c) => {
 app.post('/api/alerts/clear', (c) => {
   const result = alerts.clearAll()
   return c.json({ success: true, ...result })
+})
+
+// SpeakEasy config
+app.get('/api/speakeasy', (c) => {
+  const cfg = getSpeakEasyConfig()
+  return c.json(cfg || { providers: {} })
+})
+
+app.post('/api/speakeasy', async (c) => {
+  try {
+    const body = await c.req.json()
+    const cfg = getSpeakEasyConfig() || { providers: {} }
+
+    // Update provider settings
+    if (body.provider && body.voice) {
+      if (!cfg.providers) cfg.providers = {}
+      if (body.provider === 'openai') {
+        if (!cfg.providers.openai) cfg.providers.openai = {}
+        cfg.providers.openai.voice = body.voice
+      } else if (body.provider === 'system') {
+        if (!cfg.providers.system) cfg.providers.system = {}
+        cfg.providers.system.voice = body.voice
+      } else if (body.provider === 'groq') {
+        if (!cfg.providers.groq) cfg.providers.groq = {}
+        cfg.providers.groq.voice = body.voice
+      }
+    }
+
+    // Update default provider
+    if (body.defaultProvider) {
+      if (!cfg.defaults) cfg.defaults = {}
+      cfg.defaults.provider = body.defaultProvider
+    }
+
+    saveSpeakEasyConfig(cfg)
+    return c.json({ success: true, config: cfg })
+  } catch (err) {
+    return c.json({ success: false, error: String(err) }, 400)
+  }
 })
 
 // Serve the SPA
@@ -414,6 +470,7 @@ const dashboardHtml = `<!DOCTYPE html>
       const [stats, setStats] = useState({ total: 0, byProject: [] })
       const [config, setConfig] = useState({ voice: {}, alerts: {}, templates: {} })
       const [status, setStatus] = useState({ alerts: { pending: [] }, continuation: {} })
+      const [speakeasy, setSpeakeasy] = useState({ providers: {}, defaults: {} })
       const [filter, setFilter] = useState('')
       const [typeFilter, setTypeFilter] = useState('')
       const [autoRefresh, setAutoRefresh] = useState(true)
@@ -422,16 +479,27 @@ const dashboardHtml = `<!DOCTYPE html>
       const [selectedSession, setSelectedSession] = useState(null)
 
       const fetchData = async () => {
-        const [eventsRes, statsRes, configRes, statusRes] = await Promise.all([
+        const [eventsRes, statsRes, configRes, statusRes, speakeasyRes] = await Promise.all([
           fetch('/api/events?limit=' + limit).then(r => r.json()),
           fetch('/api/stats').then(r => r.json()),
           fetch('/api/config').then(r => r.json()),
-          fetch('/api/status').then(r => r.json())
+          fetch('/api/status').then(r => r.json()),
+          fetch('/api/speakeasy').then(r => r.json())
         ])
         setEvents(eventsRes)
         setStats(statsRes)
         setConfig(configRes)
         setStatus(statusRes)
+        setSpeakeasy(speakeasyRes)
+      }
+
+      const updateSpeakeasy = async (updates) => {
+        const res = await fetch('/api/speakeasy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        }).then(r => r.json())
+        if (res.success) setSpeakeasy(res.config)
       }
 
       useEffect(() => {
@@ -590,6 +658,17 @@ const dashboardHtml = `<!DOCTYPE html>
         }
       \`
 
+      // Voice options by provider
+      const voiceOptions = {
+        openai: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
+        groq: ['Arista-PlayAI', 'Atlas-PlayAI', 'Basil-PlayAI', 'Briggs-PlayAI', 'Calum-PlayAI', 'Celeste-PlayAI', 'Cheyenne-PlayAI', 'Chip-PlayAI', 'Cillian-PlayAI', 'Deedee-PlayAI', 'Fritz-PlayAI', 'Gail-PlayAI', 'Indigo-PlayAI', 'Mamaw-PlayAI', 'Mason-PlayAI', 'Mikail-PlayAI', 'Mitch-PlayAI', 'Quinn-PlayAI', 'Thunder-PlayAI'],
+        system: ['Samantha', 'Alex', 'Daniel', 'Karen', 'Moira', 'Tessa', 'Veena', 'Victoria']
+      }
+
+      const currentProvider = speakeasy.defaults?.provider || 'openai'
+      const currentVoice = speakeasy.providers?.[currentProvider]?.voice ||
+                          (currentProvider === 'openai' ? 'nova' : currentProvider === 'groq' ? 'Celeste-PlayAI' : 'Samantha')
+
       // ============ CONFIG TAB ============
       const ConfigTab = () => html\`
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px">
@@ -601,12 +680,26 @@ const dashboardHtml = `<!DOCTYPE html>
                 <div class="toggle \${config.voice?.enabled ? 'on' : ''}" onClick=\${() => updateConfig({ voice: { enabled: !config.voice?.enabled } })}></div>
               </div>
               <div class="setting-row">
-                <div>
-                  <span class="setting-label">Volume</span>
-                  <div class="setting-hint">\${Math.round((config.voice?.volume || 1) * 100)}%</div>
-                </div>
-                <input type="range" min="0" max="1" step="0.1" value=\${config.voice?.volume || 1} onInput=\${e => updateConfig({ voice: { volume: parseFloat(e.target.value) } })} />
+                <span class="setting-label">Volume <span style="color: #52525b">\${Math.round((config.voice?.volume || 1) * 100)}%</span></span>
+                <input type="range" min="0" max="1" step="0.1" value=\${config.voice?.volume || 1} onInput=\${e => updateConfig({ voice: { volume: parseFloat(e.target.value) } })} style="width: 120px" />
               </div>
+              <div class="setting-row">
+                <span class="setting-label">Provider</span>
+                <select value=\${currentProvider} onChange=\${e => updateSpeakeasy({ defaultProvider: e.target.value })} style="width: 120px">
+                  <option value="openai">OpenAI</option>
+                  <option value="groq">Groq</option>
+                  <option value="system">System</option>
+                  <option value="elevenlabs">ElevenLabs</option>
+                </select>
+              </div>
+              \${voiceOptions[currentProvider] && html\`
+                <div class="setting-row">
+                  <span class="setting-label">Voice</span>
+                  <select value=\${currentVoice} onChange=\${e => updateSpeakeasy({ provider: currentProvider, voice: e.target.value })} style="width: 120px">
+                    \${voiceOptions[currentProvider].map(v => html\`<option value=\${v}>\${v}</option>\`)}
+                  </select>
+                </div>
+              \`}
             </div>
 
             <div class="panel" style="margin-bottom: 16px">
