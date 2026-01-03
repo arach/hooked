@@ -46,7 +46,7 @@ async function main(): Promise<void> {
     if (!process.stdin.isTTY) {
       const chunks: Buffer[] = []
       // Set a timeout to avoid hanging if no data comes
-      const timeout = new Promise<void>((resolve) => setTimeout(resolve, 100))
+      const timeout = new Promise<void>((resolve) => setTimeout(resolve, 500))
       const readStdin = (async () => {
         for await (const chunk of process.stdin) {
           chunks.push(chunk)
@@ -92,16 +92,33 @@ async function main(): Promise<void> {
     hookedParts.push('🔇')
   }
 
-  // Widget mode: just output hooked state
+  // Widget mode: this session only, with session ID
   if (isWidget) {
-    // Show global state even without session
-    const allAlerts = alerts.getAll()
-    if (allAlerts.length > 0 && hookedParts.length === 0) {
-      hookedParts.push(`🔔${allAlerts.length}`)
+    const shortId = sessionId ? sessionId.slice(0, 6) : ''
+
+    // Build status for THIS session only
+    const parts: string[] = []
+
+    if (thisSession) {
+      parts.push(thisSession.state.mode)  // e.g., "test", "build"
     }
 
-    const status = hookedParts.length > 0 ? hookedParts.join(' ') : '✓'
-    console.log(`hooked ${status}`)
+    if (alert) {
+      const mins = alerts.getAgeMinutes(alert)
+      parts.push(`${mins}m`)  // waiting time
+    }
+
+    if (!config.isVoiceEnabled()) {
+      parts.push('muted')
+    }
+
+    // Format: "hooked: abc123" or "hooked: abc123 test 5m"
+    if (shortId) {
+      const suffix = parts.length > 0 ? ' ' + parts.join(' ') : ''
+      console.log(`hooked: ${shortId}${suffix}`)
+    } else {
+      console.log('hooked')
+    }
     return
   }
 
