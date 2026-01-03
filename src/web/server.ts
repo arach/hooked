@@ -634,7 +634,9 @@ const dashboardHtml = `<!DOCTYPE html>
                       <span style="color: #fbbf24">\${Math.round((Date.now() - new Date(a.timestamp).getTime()) / 60000)}m</span>
                     </div>
                   \`)}
-                <button class="danger" style="width: 100%; margin-top: 12px; font-size: 11px" onClick=\${clearAlerts}>Clear All</button>
+                <div style="text-align: right; margin-top: 8px">
+                  <span style="color: #52525b; font-size: 10px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s" onMouseOver=\${e => e.target.style.opacity = 1} onMouseOut=\${e => e.target.style.opacity = 0.7} onClick=\${clearAlerts}>clear all</span>
+                </div>
               \`
             }
           </div>
