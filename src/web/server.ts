@@ -497,6 +497,7 @@ const dashboardHtml = `<!DOCTYPE html>
       const [limit, setLimit] = useState(100)
       const [tab, setTab] = useState('status')
       const [selectedSession, setSelectedSession] = useState(null)
+      const [selectedEvent, setSelectedEvent] = useState(null)
       const [editingTemplates, setEditingTemplates] = useState({})
       const [editingConfig, setEditingConfig] = useState({})
       const [configDirty, setConfigDirty] = useState(false)
@@ -771,13 +772,24 @@ const dashboardHtml = `<!DOCTYPE html>
               </thead>
               <tbody>
                 \${filteredEvents.map(e => html\`
-                  <tr class="clickable" onClick=\${() => setFilter(e.session_id?.slice(0,8) || e.project)}>
+                  <tr class="clickable" onClick=\${() => setSelectedEvent(selectedEvent?.id === e.id ? null : e)}>
                     <td class="time">\${formatTime(e.timestamp)}</td>
                     <td><span class="badge badge-\${e.type}">\${e.type}</span></td>
                     <td class="project">\${e.project}</td>
                     <td class="session">\${e.session_id?.slice(0, 8) || '-'}</td>
                     <td class="message">\${e.message || '-'}</td>
                   </tr>
+                  \${selectedEvent?.id === e.id && html\`
+                    <tr>
+                      <td colspan="5" style="padding: 12px; background: #09090b">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px">
+                          <span style="color: #52525b; font-size: 10px; text-transform: uppercase">Raw Payload</span>
+                          <span style="color: #52525b; font-size: 10px; cursor: pointer" onClick=\${() => setFilter(e.session_id?.slice(0,8))}>filter by session →</span>
+                        </div>
+                        <pre style="background: #18181b; padding: 12px; border-radius: 4px; font-size: 10px; color: #71717a; overflow-x: auto; max-height: 200px; margin: 0">\${e.payload ? JSON.stringify(e.payload, null, 2) : 'No payload stored'}</pre>
+                      </td>
+                    </tr>
+                  \`}
                 \`)}
               </tbody>
             </table>
