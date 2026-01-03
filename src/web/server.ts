@@ -680,17 +680,69 @@ const dashboardHtml = `<!DOCTYPE html>
           </div>
         </div>
 
-        <div class="panel">
-          <h2 style="margin: 0 0 12px">Projects</h2>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px">
-            \${(stats.byProject || []).map(p => html\`
-              <div class="clickable" style="padding: 6px 12px; background: #09090b; border: 1px solid #27272a; border-radius: 4px" onClick=\${() => setFilter(p.project)}>
-                <span style="color: #60a5fa">\${p.project}</span>
-                <span style="color: #52525b; margin-left: 8px">\${p.count}</span>
+        \${selectedSession ? html\`
+          <div class="panel" style="margin-bottom: 20px">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px">
+              <div>
+                <h2 style="margin: 0; color: #e4e4e7">\${selectedSession.project}</h2>
+                <div style="color: #52525b; font-size: 11px; margin-top: 4px">session detail</div>
               </div>
-            \`)}
+              <span style="color: #52525b; font-size: 11px; cursor: pointer" onClick=\${() => setSelectedSession(null)}>← back to projects</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px">
+              <div>
+                <div class="detail-row">
+                  <span class="detail-label">Session ID</span>
+                  <span class="detail-value" style="font-family: monospace; font-size: 11px">\${selectedSession.sessionId}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Message</span>
+                  <span class="detail-value">\${selectedSession.message || 'Needs input'}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Waiting</span>
+                  <span class="detail-value" style="color: #fbbf24">\${Math.round((Date.now() - new Date(selectedSession.timestamp).getTime()) / 60000)} minutes</span>
+                </div>
+              </div>
+              <div>
+                <div class="detail-row">
+                  <span class="detail-label">Started</span>
+                  <span class="detail-value">\${new Date(selectedSession.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Reminders</span>
+                  <span class="detail-value">\${selectedSession.reminders || 0}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Path</span>
+                  <span class="detail-value" style="font-size: 10px; color: #71717a">\${(selectedSession.cwd || '').replace(/^\\/\\//, '/')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 8px">
+              <button style="flex: 1" onClick=\${() => { setFilter(selectedSession.sessionId?.slice(0,8) || ''); }}>
+                View events
+              </button>
+              <button style="flex: 1; background: #27272a; border-color: #3f3f46" onClick=\${() => clearSession(selectedSession.sessionId)}>
+                Clear alert
+              </button>
+            </div>
           </div>
-        </div>
+        \` : html\`
+          <div class="panel" style="margin-bottom: 20px">
+            <h2 style="margin: 0 0 12px">Projects</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              \${(stats.byProject || []).map(p => html\`
+                <div class="clickable" style="padding: 6px 12px; background: #09090b; border: 1px solid #27272a; border-radius: 4px" onClick=\${() => setFilter(p.project)}>
+                  <span style="color: #60a5fa">\${p.project}</span>
+                  <span style="color: #52525b; margin-left: 8px">\${p.count}</span>
+                </div>
+              \`)}
+            </div>
+          </div>
+        \`}
 
         <h2>Event Log</h2>
         <div class="controls">
@@ -854,55 +906,6 @@ const dashboardHtml = `<!DOCTYPE html>
         </div>
 
         \${tab === 'status' ? StatusTab() : ConfigTab()}
-
-        \${selectedSession && html\`
-          <div class="session-detail" onClick=\${(e) => e.target === e.currentTarget && setSelectedSession(null)}>
-            <div class="session-detail-content">
-              <div class="session-detail-header">
-                <div>
-                  <h2 style="margin: 0; color: #e4e4e7; font-size: 16px">\${selectedSession.project}</h2>
-                  <div style="color: #52525b; font-size: 11px; margin-top: 4px">waiting for input</div>
-                </div>
-                <button class="session-detail-close" onClick=\${() => setSelectedSession(null)}>×</button>
-              </div>
-
-              <div class="detail-row">
-                <span class="detail-label">Session ID</span>
-                <span class="detail-value" style="font-family: monospace">\${selectedSession.sessionId}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Message</span>
-                <span class="detail-value">\${selectedSession.message || 'Needs input'}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Waiting</span>
-                <span class="detail-value" style="color: #fbbf24">\${Math.round((Date.now() - new Date(selectedSession.timestamp).getTime()) / 60000)} minutes</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Started</span>
-                <span class="detail-value">\${new Date(selectedSession.timestamp).toLocaleTimeString()}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Reminders sent</span>
-                <span class="detail-value">\${selectedSession.reminders || 0}</span>
-              </div>
-
-              <div style="margin-top: 16px">
-                <div class="detail-label" style="margin-bottom: 4px">Path</div>
-                <div class="path-display">\${(selectedSession.cwd || '').replace(/^\\/\\//, '/')}</div>
-              </div>
-
-              <div style="margin-top: 16px; display: flex; gap: 8px">
-                <button style="flex: 1" onClick=\${() => { setFilter(selectedSession.sessionId?.slice(0,8) || ''); setSelectedSession(null); }}>
-                  View events
-                </button>
-                <button style="flex: 1; background: #27272a; border-color: #3f3f46" onClick=\${() => clearSession(selectedSession.sessionId)}>
-                  Clear alert
-                </button>
-              </div>
-            </div>
-          </div>
-        \`}
       \`
     }
 
