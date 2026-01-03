@@ -491,7 +491,8 @@ const dashboardHtml = `<!DOCTYPE html>
       const [tab, setTab] = useState('status')
       const [selectedSession, setSelectedSession] = useState(null)
       const [editingTemplates, setEditingTemplates] = useState({})
-      const [templatesDirty, setTemplatesDirty] = useState(false)
+      const [editingConfig, setEditingConfig] = useState({})
+      const [configDirty, setConfigDirty] = useState(false)
 
       const fetchData = async () => {
         const [eventsRes, statsRes, configRes, statusRes, speakeasyRes] = await Promise.all([
@@ -525,36 +526,60 @@ const dashboardHtml = `<!DOCTYPE html>
         }
       }, [autoRefresh, limit])
 
-      const updateConfig = async (updates) => {
-        const res = await fetch('/api/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates)
-        }).then(r => r.json())
-        if (res.success) fetchData()
-      }
-
       const clearAlerts = async () => {
         await fetch('/api/alerts/clear', { method: 'POST' })
         fetchData()
       }
 
+      // Local config editing (no auto-save)
+      const updateLocalConfig = (section, key, value) => {
+        setEditingConfig(prev => ({
+          ...prev,
+          [section]: { ...(prev[section] || {}), [key]: value }
+        }))
+        setConfigDirty(true)
+      }
+
       const updateTemplate = (key, value) => {
         setEditingTemplates(prev => ({ ...prev, [key]: value }))
-        setTemplatesDirty(true)
+        setConfigDirty(true)
       }
 
-      const saveTemplates = async () => {
-        await updateConfig({ templates: editingTemplates })
-        setTemplatesDirty(false)
+      const saveConfig = async () => {
+        const updates = {}
+        if (editingConfig.voice) updates.voice = editingConfig.voice
+        if (editingConfig.alerts) updates.alerts = editingConfig.alerts
+        if (Object.keys(editingTemplates).length > 0) updates.templates = editingTemplates
+
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        }).then(r => r.json())
+        if (res.success) {
+          setConfigDirty(false)
+          fetchData()
+        }
       }
 
-      // Initialize editing templates from config
+      const discardChanges = () => {
+        setEditingConfig({})
+        setEditingTemplates(config.templates || {})
+        setConfigDirty(false)
+      }
+
+      // Initialize editing state from config
       useEffect(() => {
-        if (config.templates && Object.keys(editingTemplates).length === 0) {
+        if (config.templates) {
           setEditingTemplates(config.templates)
         }
       }, [config.templates])
+
+      // Helper to get current value (edited or original)
+      const getConfigValue = (section, key, defaultVal) => {
+        if (editingConfig[section]?.[key] !== undefined) return editingConfig[section][key]
+        return config[section]?.[key] ?? defaultVal
+      }
 
       const filteredEvents = events.filter(e => {
         if (typeFilter && e.type !== typeFilter) return false
@@ -708,17 +733,26 @@ const dashboardHtml = `<!DOCTYPE html>
 
       // ============ CONFIG TAB ============
       const ConfigTab = () => html\`
+        \${configDirty && html\`
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 16px; background: #1c1c1f; border: 1px solid #27272a; border-radius: 4px">
+            <span style="color: #fbbf24; font-size: 12px">Unsaved changes</span>
+            <div style="display: flex; gap: 8px">
+              <span style="color: #52525b; font-size: 11px; cursor: pointer" onClick=\${discardChanges}>discard</span>
+              <button style="font-size: 11px; padding: 4px 16px" onClick=\${saveConfig}>Save</button>
+            </div>
+          </div>
+        \`}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px">
           <div>
             <div class="panel" style="margin-bottom: 16px">
               <h2 style="margin: 0 0 16px">Voice</h2>
               <div class="setting-row">
                 <span class="setting-label">Enabled</span>
-                <div class="toggle \${config.voice?.enabled ? 'on' : ''}" onClick=\${() => updateConfig({ voice: { enabled: !config.voice?.enabled } })}></div>
+                <div class="toggle \${getConfigValue('voice', 'enabled', true) ? 'on' : ''}" onClick=\${() => updateLocalConfig('voice', 'enabled', !getConfigValue('voice', 'enabled', true))}></div>
               </div>
               <div class="setting-row">
-                <span class="setting-label">Volume <span style="color: #52525b">\${Math.round((config.voice?.volume || 1) * 100)}%</span></span>
-                <input type="range" min="0" max="1" step="0.1" value=\${config.voice?.volume || 1} onInput=\${e => updateConfig({ voice: { volume: parseFloat(e.target.value) } })} style="width: 120px" />
+                <span class="setting-label">Volume <span style="color: #52525b">\${Math.round(getConfigValue('voice', 'volume', 1) * 100)}%</span></span>
+                <input type="range" min="0" max="1" step="0.1" value=\${getConfigValue('voice', 'volume', 1)} onInput=\${e => updateLocalConfig('voice', 'volume', parseFloat(e.target.value))} style="width: 120px" />
               </div>
               <div class="setting-row">
                 <span class="setting-label">Provider</span>
@@ -743,38 +777,35 @@ const dashboardHtml = `<!DOCTYPE html>
               <h2 style="margin: 0 0 16px">Alerts</h2>
               <div class="setting-row">
                 <span class="setting-label">Enabled</span>
-                <div class="toggle \${config.alerts?.enabled ? 'on' : ''}" onClick=\${() => updateConfig({ alerts: { enabled: !config.alerts?.enabled } })}></div>
+                <div class="toggle \${getConfigValue('alerts', 'enabled', true) ? 'on' : ''}" onClick=\${() => updateLocalConfig('alerts', 'enabled', !getConfigValue('alerts', 'enabled', true))}></div>
               </div>
               <div class="setting-row">
                 <div>
                   <span class="setting-label">Remind every</span>
                   <div class="setting-hint">minutes</div>
                 </div>
-                <input type="number" min="1" max="60" value=\${config.alerts?.reminderMinutes || 5} onChange=\${e => updateConfig({ alerts: { reminderMinutes: parseInt(e.target.value) } })} />
+                <input type="number" min="1" max="60" value=\${getConfigValue('alerts', 'reminderMinutes', 5)} onChange=\${e => updateLocalConfig('alerts', 'reminderMinutes', parseInt(e.target.value))} />
               </div>
               <div class="setting-row">
                 <div>
                   <span class="setting-label">Max reminders</span>
                   <div class="setting-hint">0 = unlimited</div>
                 </div>
-                <input type="number" min="0" max="20" value=\${config.alerts?.maxReminders || 0} onChange=\${e => updateConfig({ alerts: { maxReminders: parseInt(e.target.value) } })} />
+                <input type="number" min="0" max="20" value=\${getConfigValue('alerts', 'maxReminders', 0)} onChange=\${e => updateLocalConfig('alerts', 'maxReminders', parseInt(e.target.value))} />
               </div>
               <div class="setting-row">
                 <div>
                   <span class="setting-label">Urgent after</span>
                   <div class="setting-hint">minutes (0 = never)</div>
                 </div>
-                <input type="number" min="0" max="60" value=\${config.alerts?.urgentAfterMinutes || 0} onChange=\${e => updateConfig({ alerts: { urgentAfterMinutes: parseInt(e.target.value) } })} />
+                <input type="number" min="0" max="60" value=\${getConfigValue('alerts', 'urgentAfterMinutes', 0)} onChange=\${e => updateLocalConfig('alerts', 'urgentAfterMinutes', parseInt(e.target.value))} />
               </div>
             </div>
           </div>
 
           <div>
             <div class="panel" style="margin-bottom: 16px">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px">
-                <h2 style="margin: 0">Templates</h2>
-                \${templatesDirty && html\`<button style="font-size: 11px; padding: 4px 12px" onClick=\${saveTemplates}>Save</button>\`}
-              </div>
+              <h2 style="margin: 0 0 16px">Templates</h2>
               \${Object.entries(config.templates || {}).map(([key, val]) => html\`
                 <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 4px">
                   <span class="setting-label" style="font-size: 10px; color: #52525b">\${key}</span>
