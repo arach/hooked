@@ -280,8 +280,9 @@ hooked history prune 30                   # Delete events older than 30 days
 View your event history in a browser with filtering, search, and live updates:
 
 \`\`\`bash
-hooked web        # Opens http://localhost:3456
-hooked web 8080   # Custom port
+hooked web                 # Opens http://localhost:3456 (auto-closes in 10m, background)
+hooked web 8080 30          # Custom port + timeout
+hooked web --foreground     # Keep attached to the terminal
 \`\`\`
 
 The dashboard shows:
@@ -346,8 +347,9 @@ hooked h 50                  # Short form
 ### Web Dashboard
 
 \`\`\`bash
-hooked web [port]    # Open dashboard (default: 3456)
-hooked dashboard     # Alias for web
+hooked web [port] [mins]      # Open dashboard (auto-closes in 10m, background)
+hooked web --foreground       # Keep attached to the terminal
+hooked dashboard              # Alias for web
 \`\`\`
 
 ### Shortcuts

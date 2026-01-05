@@ -7,7 +7,7 @@
 Run this command and report the result:
 
 ```bash
-~/.hooked/node_modules/.bin/tsx ~/.hooked/src/cli.ts $ARGUMENTS
+~/.hooked/bin/hooked $ARGUMENTS
 ```
 
 **Commands:**
@@ -23,4 +23,4 @@ Run this command and report the result:
 - `pause` → Same as `until pause`
 
 **On mission completion:**
-When you've fully achieved the objective, run `~/.hooked/node_modules/.bin/tsx ~/.hooked/src/cli.ts off` to clear the loop, then summarize what was accomplished.
+When you've fully achieved the objective, run `~/.hooked/bin/hooked off` to clear the loop, then summarize what was accomplished.

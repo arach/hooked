@@ -60,8 +60,9 @@ hooked status
 View history, configure settings, and monitor active alerts:
 
 ```bash
-hooked web          # Opens at localhost:3456, auto-closes in 10m
-hooked web 8080 30  # Custom port, 30 minute timeout
+hooked web                 # Opens at localhost:3456, auto-closes in 10m (background)
+hooked web 8080 30         # Custom port, 30 minute timeout
+hooked web --foreground    # Keep attached to the terminal
 ```
 
 ![Web Dashboard](hooked-web.png)

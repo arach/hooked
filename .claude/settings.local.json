@@ -57,7 +57,23 @@
       "Bash(git restore:*)",
       "Bash(pkill:*)",
       "Bash(grep:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Bash(npm publish:*)",
+      "Bash(yes:*)",
+      "WebSearch",
+      "Bash(npx ccstatusline@latest)",
+      "Bash(echo:*)",
+      "Bash(osascript:*)",
+      "Bash(pnpm update:*)",
+      "Bash(bunx:*)",
+      "Bash(npx ccstatusline@latest:*)",
+      "Bash(/Users/arach/.hooked/node_modules/.bin/tsx /Users/arach/.hooked/src/statusline.ts --widget)",
+      "Bash(sqlite3:*)",
+      "Bash(docker system:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(hooked:*)",
+      "Bash(~/.hooked/bin/hooked:*)"
     ],
     "deny": []
   }

@@ -15,6 +15,7 @@
  *   until pause           Stop after next cycle
  */
 
+import { spawn } from 'node:child_process'
 import { continuation } from './continuation'
 import { config, renderTemplate } from './core/config'
 import { speak } from './core/speak'
@@ -52,6 +53,7 @@ Commands:
   clear <id>            Clear alert by session ID prefix
   clear all             Clear ALL alerts globally
   web [port] [mins]     Open web dashboard (default: 3456, auto-close: 10m)
+                        Use --foreground to keep it attached
 
 History:
   history [n]           Show recent events (default: 20)
@@ -216,6 +218,20 @@ async function handleUntil(): Promise<void> {
         console.log(`Target: project "${displayName}" (no active session yet)`)
       }
     }
+  }
+}
+
+function parseWebArgs(rawArgs: string[]): { port: number; timeout: number; foreground: boolean } {
+  const foregroundFlags = new Set(['--foreground', '--fg', '--wait'])
+  const foreground = rawArgs.some(arg => foregroundFlags.has(arg))
+  const positional = rawArgs.filter(arg => !foregroundFlags.has(arg))
+  const port = parseInt(positional[0] || '', 10)
+  const timeout = parseInt(positional[1] || '', 10)
+
+  return {
+    port: Number.isFinite(port) ? port : 3456,
+    timeout: Number.isFinite(timeout) ? timeout : 10,
+    foreground,
   }
 }
 
@@ -409,8 +425,38 @@ function printEvents(events: ReturnType<typeof history.getRecent>): void {
 }
 
 async function handleWeb(): Promise<void> {
-  const port = args[0] ? parseInt(args[0], 10) : 3456
-  const timeout = args[1] ? parseInt(args[1], 10) : 10  // default 10 minutes
+  const { port, timeout, foreground } = parseWebArgs(args)
+
+  if (foreground) {
+    await startServer(port, timeout)
+    return
+  }
+
+  const scriptPath = process.argv[1]
+  if (!scriptPath) {
+    await startServer(port, timeout)
+    return
+  }
+
+  const child = spawn(process.execPath, [
+    ...process.execArgv,
+    scriptPath,
+    'web-daemon',
+    String(port),
+    String(timeout),
+  ], {
+    detached: true,
+    stdio: 'ignore',
+  })
+  child.unref()
+
+  console.log(`Dashboard running at http://localhost:${port}`)
+  console.log(`Auto-shutdown in ${timeout} minutes`)
+  console.log('Use "hooked web --foreground" to keep it attached.')
+}
+
+async function handleWebDaemon(): Promise<void> {
+  const { port, timeout } = parseWebArgs(args)
   await startServer(port, timeout)
 }
 
@@ -443,7 +489,6 @@ function handleClear(): void {
 
   // Default: try to clear for current project
   const currentSession = getCurrentSession()
-  const folder = getCurrentProjectFolder()
   const displayName = getCurrentDisplayName()
 
   // Find alerts for current session or project (exact match)
@@ -504,6 +549,7 @@ function handleId(): void {
 
   if (matches.length === 1) {
     const s = matches[0]
+    if (!s) return
     const path = project.folderToPath(s.projectFolder)
     console.log(s.sessionId)
     console.log(`  Project: ${path}`)
@@ -525,7 +571,6 @@ function handleAlert(): void {
   // Widget mode for ccstatusline - outputs compact single line
   if (subcommand === 'widget' || subcommand === 'w') {
     const currentSession = getCurrentSession()
-    const folder = getCurrentProjectFolder()
     const displayName = getCurrentDisplayName()
     const allAlerts = alerts.getAll()
 
@@ -647,6 +692,10 @@ async function main(): Promise<void> {
     case 'web':
     case 'dashboard':
       await handleWeb()
+      break
+
+    case 'web-daemon':
+      await handleWebDaemon()
       break
 
     case 'statusline':

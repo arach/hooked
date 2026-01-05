@@ -7,7 +7,7 @@
  *   (default)    Quick, non-interactive install/update
  */
 
-import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, readdirSync } from 'fs'
+import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, readdirSync, chmodSync } from 'fs'
 import { execSync } from 'child_process'
 import { homedir } from 'os'
 import { join, dirname } from 'path'
@@ -19,8 +19,10 @@ const PROJECT_ROOT = join(__dirname, '..')
 // Destinations
 const HOOKED_HOME = join(homedir(), '.hooked')
 const HOOKED_SRC = join(HOOKED_HOME, 'src')
+const HOOKED_BIN = join(HOOKED_HOME, 'bin')
 const CLAUDE_DIR = join(homedir(), '.claude')
 const SETTINGS_FILE = join(CLAUDE_DIR, 'settings.json')
+const SETTINGS_LOCAL_FILE = join(CLAUDE_DIR, 'settings.local.json')
 const COMMANDS_DIR = join(CLAUDE_DIR, 'commands')
 
 const args = process.argv.slice(2)
@@ -127,7 +129,38 @@ async function runInstall(): Promise<void> {
     process.exit(1)
   }
 
-  // 5. Configure hooks in ~/.claude/settings.json
+  // 5. Copy bin/ → ~/.hooked/bin/ and make executable
+  const binDir = join(PROJECT_ROOT, 'bin')
+  if (existsSync(binDir)) {
+    copyDirRecursive(binDir, HOOKED_BIN)
+    chmodSync(join(HOOKED_BIN, 'hooked'), 0o755)
+    log('Installed hooked CLI to ~/.hooked/bin/')
+  }
+
+  // 6. Add permission to ~/.claude/settings.local.json
+  let localSettings: Record<string, unknown> = {}
+  if (existsSync(SETTINGS_LOCAL_FILE)) {
+    try {
+      localSettings = JSON.parse(readFileSync(SETTINGS_LOCAL_FILE, 'utf-8'))
+    } catch {
+      // Start fresh if parse fails
+    }
+  }
+
+  if (!localSettings.permissions) {
+    localSettings.permissions = { allow: [], deny: [] }
+  }
+  const permissions = localSettings.permissions as { allow: string[]; deny: string[] }
+  if (!permissions.allow) permissions.allow = []
+
+  const hookedPermission = 'Bash(~/.hooked/bin/hooked:*)'
+  if (!permissions.allow.includes(hookedPermission)) {
+    permissions.allow.push(hookedPermission)
+    writeFileSync(SETTINGS_LOCAL_FILE, JSON.stringify(localSettings, null, 2))
+    log('Added hooked to allowed commands')
+  }
+
+  // 7. Configure hooks in ~/.claude/settings.json
   let settings: Record<string, unknown> = {}
   if (existsSync(SETTINGS_FILE)) {
     try {
@@ -171,14 +204,14 @@ async function runInstall(): Promise<void> {
   writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
   log('Configured hooks in ~/.claude/settings.json')
 
-  // 6. Copy slash command to ~/.claude/commands/
+  // 8. Copy slash command to ~/.claude/commands/
   const commandSrc = join(PROJECT_ROOT, '.claude', 'commands', 'hooked.md')
   if (existsSync(commandSrc)) {
     cpSync(commandSrc, join(COMMANDS_DIR, 'hooked.md'))
     log('Installed /hooked command globally')
   }
 
-  // 7. Ensure config exists with defaults
+  // 9. Ensure config exists with defaults
   const configFile = join(HOOKED_HOME, 'config.json')
   if (!existsSync(configFile)) {
     writeFileSync(configFile, JSON.stringify({
@@ -207,7 +240,7 @@ async function runInstall(): Promise<void> {
     log('Created default config')
   }
 
-  // 8. Clean up stale session registry entries (older than 24h)
+  // 10. Clean up stale session registry entries (older than 24h)
   try {
     const { log: hookedLog } = await import('./core/log')
     hookedLog.clearStaleSessions()

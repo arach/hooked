@@ -18,6 +18,9 @@ import open from 'open'
 
 // SpeakEasy config path
 const SPEAKEASY_CONFIG = join(homedir(), '.config', 'speakeasy', 'settings.json')
+// Claude Code settings path
+const CLAUDE_SETTINGS = join(homedir(), '.claude', 'settings.json')
+const HOOKED_STATUSLINE_CMD = `${join(homedir(), '.hooked', 'node_modules', '.bin', 'tsx')} ${join(homedir(), '.hooked', 'src', 'statusline.ts')}`
 
 function getSpeakEasyConfig() {
   if (!existsSync(SPEAKEASY_CONFIG)) return null
@@ -28,6 +31,17 @@ function getSpeakEasyConfig() {
 
 function saveSpeakEasyConfig(cfg: any) {
   writeFileSync(SPEAKEASY_CONFIG, JSON.stringify(cfg, null, 2))
+}
+
+function getClaudeSettings() {
+  if (!existsSync(CLAUDE_SETTINGS)) return {}
+  try {
+    return JSON.parse(readFileSync(CLAUDE_SETTINGS, 'utf-8'))
+  } catch { return {} }
+}
+
+function saveClaudeSettings(settings: any) {
+  writeFileSync(CLAUDE_SETTINGS, JSON.stringify(settings, null, 2))
 }
 
 const app = new Hono()
@@ -171,6 +185,50 @@ app.post('/api/speakeasy', async (c) => {
 
     saveSpeakEasyConfig(cfg)
     return c.json({ success: true, config: cfg })
+  } catch (err) {
+    return c.json({ success: false, error: String(err) }, 400)
+  }
+})
+
+// Status Line config
+app.get('/api/statusline', (c) => {
+  const settings = getClaudeSettings()
+  return c.json({
+    enabled: !!settings.statusLine,
+    command: settings.statusLine?.command || null,
+    isHooked: settings.statusLine?.command?.includes('hooked') || false,
+    hookedCommand: HOOKED_STATUSLINE_CMD,
+  })
+})
+
+app.post('/api/statusline', async (c) => {
+  try {
+    const body = await c.req.json()
+    const settings = getClaudeSettings()
+
+    if (body.enabled === false) {
+      // Disable status line
+      delete settings.statusLine
+    } else if (body.enabled === true) {
+      // Enable with hooked statusline
+      settings.statusLine = {
+        type: 'command',
+        command: body.command || HOOKED_STATUSLINE_CMD,
+      }
+    } else if (body.command) {
+      // Update command only
+      settings.statusLine = {
+        type: 'command',
+        command: body.command,
+      }
+    }
+
+    saveClaudeSettings(settings)
+    return c.json({
+      success: true,
+      enabled: !!settings.statusLine,
+      command: settings.statusLine?.command || null,
+    })
   } catch (err) {
     return c.json({ success: false, error: String(err) }, 400)
   }
@@ -491,6 +549,7 @@ const dashboardHtml = `<!DOCTYPE html>
       const [config, setConfig] = useState({ voice: {}, alerts: {}, templates: {} })
       const [status, setStatus] = useState({ alerts: { pending: [] }, continuation: {} })
       const [speakeasy, setSpeakeasy] = useState({ providers: {}, defaults: {} })
+      const [statusline, setStatusline] = useState({ enabled: false, command: null, isHooked: false })
       const [filter, setFilter] = useState('')
       const [typeFilter, setTypeFilter] = useState('')
       const [autoRefresh, setAutoRefresh] = useState(true)
@@ -503,18 +562,20 @@ const dashboardHtml = `<!DOCTYPE html>
       const [configDirty, setConfigDirty] = useState(false)
 
       const fetchData = async () => {
-        const [eventsRes, statsRes, configRes, statusRes, speakeasyRes] = await Promise.all([
+        const [eventsRes, statsRes, configRes, statusRes, speakeasyRes, statuslineRes] = await Promise.all([
           fetch('/api/events?limit=' + limit).then(r => r.json()),
           fetch('/api/stats').then(r => r.json()),
           fetch('/api/config').then(r => r.json()),
           fetch('/api/status').then(r => r.json()),
-          fetch('/api/speakeasy').then(r => r.json())
+          fetch('/api/speakeasy').then(r => r.json()),
+          fetch('/api/statusline').then(r => r.json())
         ])
         setEvents(eventsRes)
         setStats(statsRes)
         setConfig(configRes)
         setStatus(statusRes)
         setSpeakeasy(speakeasyRes)
+        setStatusline(statuslineRes)
       }
 
       const updateSpeakeasy = async (updates) => {
@@ -524,6 +585,22 @@ const dashboardHtml = `<!DOCTYPE html>
           body: JSON.stringify(updates)
         }).then(r => r.json())
         if (res.success) setSpeakeasy(res.config)
+      }
+
+      const updateStatusline = async (updates) => {
+        const res = await fetch('/api/statusline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        }).then(r => r.json())
+        if (res.success) {
+          setStatusline(prev => ({
+            ...prev,
+            enabled: res.enabled,
+            command: res.command,
+            isHooked: res.command?.includes('hooked') || false,
+          }))
+        }
       }
 
       useEffect(() => {
@@ -810,15 +887,11 @@ const dashboardHtml = `<!DOCTYPE html>
 
       // ============ CONFIG TAB ============
       const ConfigTab = () => html\`
-        \${configDirty && html\`
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 12px 16px; background: #1c1c1f; border: 1px solid #27272a; border-radius: 4px">
-            <span style="color: #fbbf24; font-size: 12px">Unsaved changes</span>
-            <div style="display: flex; gap: 8px">
-              <span style="color: #52525b; font-size: 11px; cursor: pointer" onClick=\${discardChanges}>discard</span>
-              <button style="font-size: 11px; padding: 4px 16px" onClick=\${saveConfig}>Save</button>
-            </div>
-          </div>
-        \`}
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 16px; gap: 12px">
+          \${configDirty && html\`<span style="color: #fbbf24; font-size: 11px">Unsaved changes</span>\`}
+          \${configDirty && html\`<span style="color: #52525b; font-size: 11px; cursor: pointer" onClick=\${discardChanges}>discard</span>\`}
+          <button style="font-size: 11px; padding: 6px 20px; opacity: \${configDirty ? 1 : 0.5}" onClick=\${saveConfig} disabled=\${!configDirty}>Save</button>
+        </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px">
           <div>
             <div class="panel" style="margin-bottom: 16px">
@@ -881,6 +954,32 @@ const dashboardHtml = `<!DOCTYPE html>
           </div>
 
           <div>
+            <div class="panel" style="margin-bottom: 16px">
+              <h2 style="margin: 0 0 16px">Status Line</h2>
+              <div class="setting-row">
+                <div>
+                  <span class="setting-label">Enabled</span>
+                  <div class="setting-hint">Show status in Claude Code</div>
+                </div>
+                <div class="toggle \${statusline.enabled ? 'on' : ''}" onClick=\${() => updateStatusline({ enabled: !statusline.enabled })}></div>
+              </div>
+              \${statusline.enabled && html\`
+                <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 8px">
+                  <span class="setting-label" style="font-size: 10px; color: #52525b">Command</span>
+                  <div style="width: 100%; font-size: 10px; padding: 8px; background: #09090b; border-radius: 4px; color: #71717a; word-break: break-all">
+                    \${statusline.command || 'Not configured'}
+                  </div>
+                </div>
+                \${!statusline.isHooked && html\`
+                  <div style="margin-top: 12px">
+                    <button style="font-size: 10px; padding: 6px 12px; width: 100%" onClick=\${() => updateStatusline({ enabled: true, command: statusline.hookedCommand })}>
+                      Use Hooked Status Line
+                    </button>
+                  </div>
+                \`}
+              \`}
+            </div>
+
             <div class="panel" style="margin-bottom: 16px">
               <h2 style="margin: 0 0 16px">Templates</h2>
               \${Object.entries(config.templates || {}).map(([key, val]) => html\`
