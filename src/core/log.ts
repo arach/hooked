@@ -1,6 +1,7 @@
 import { homedir } from 'os'
-import { existsSync, mkdirSync, appendFileSync, readFileSync, writeFileSync, readdirSync } from 'fs'
+import { existsSync, mkdirSync, appendFileSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
+import { writeFileAtomic } from './fs'
 
 export interface HookEvent {
   ts: string
@@ -110,7 +111,7 @@ function getRegistry(): SessionRegistry {
 
 function saveRegistry(registry: SessionRegistry): void {
   ensureDirs()
-  writeFileSync(REGISTRY_FILE, JSON.stringify(registry, null, 2))
+  writeFileAtomic(REGISTRY_FILE, JSON.stringify(registry, null, 2))
 }
 
 export function registerSession(sessionId: string, projectFolder: string, displayName: string): void {

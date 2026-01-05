@@ -9,7 +9,8 @@
  * 4. Output JSON decision: { "decision": "block" | "approve", "reason": "..." }
  */
 
-import { execSync } from 'child_process'
+import { execSync, type ExecSyncOptions } from 'child_process'
+import { statSync } from 'fs'
 import { continuation } from './continuation'
 import { speak } from './core/speak'
 import { log, registerSession } from './core/log'
@@ -20,6 +21,7 @@ import { history } from './core/history'
 interface StopPayload {
   session_id: string
   transcript_path?: string
+  cwd?: string
   [key: string]: unknown
 }
 
@@ -42,13 +44,50 @@ function output(decision: StopDecision): void {
   console.log(JSON.stringify(decision))
 }
 
-async function runCheck(command: string): Promise<boolean> {
+async function runCheck(command: string, cwd?: string): Promise<boolean> {
   try {
-    execSync(command, { stdio: 'pipe', timeout: 60000 })
+    const options: ExecSyncOptions = {
+      stdio: 'pipe',
+      timeout: 60000,
+      maxBuffer: 10 * 1024 * 1024,
+    }
+    if (cwd) {
+      options.cwd = cwd
+    }
+    execSync(command, options)
     return true
   } catch {
     return false
   }
+}
+
+function isDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+function resolveCheckCwd(payloadCwd: unknown, projectFolder: string): string | undefined {
+  const candidates: string[] = []
+
+  if (typeof payloadCwd === 'string' && payloadCwd.trim()) {
+    candidates.push(payloadCwd)
+  }
+
+  const decodedPath = project.folderToPath(projectFolder)
+  if (decodedPath) {
+    candidates.push(decodedPath)
+  }
+
+  for (const candidate of candidates) {
+    if (isDirectory(candidate)) {
+      return candidate
+    }
+  }
+
+  return undefined
 }
 
 async function main(): Promise<void> {
@@ -66,6 +105,7 @@ async function main(): Promise<void> {
   const sessionId = payload.session_id
   const projectFolder = project.extractFolder(payload.transcript_path || '') || 'unknown'
   const displayName = project.getDisplayNameFromFolder(projectFolder)
+  const checkCwd = resolveCheckCwd(payload.cwd, projectFolder)
 
   if (!sessionId) {
     console.error('[hooked:stop] No session_id in payload')
@@ -124,7 +164,7 @@ async function main(): Promise<void> {
 
   // Step 4: Evaluate based on mode
   if (state.mode === 'check' && state.check) {
-    const passed = await runCheck(state.check)
+    const passed = await runCheck(state.check, checkCwd)
 
     if (passed) {
       continuation.clearSession(sessionId, 'Check passed', displayName)

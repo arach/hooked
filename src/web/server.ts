@@ -11,10 +11,11 @@ import { history } from '../core/history'
 import { config } from '../core/config'
 import { continuation } from '../continuation'
 import { alerts } from '../core/alerts'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import open from 'open'
+import { writeFileAtomic } from '../core/fs'
 
 // SpeakEasy config path
 const SPEAKEASY_CONFIG = join(homedir(), '.config', 'speakeasy', 'settings.json')
@@ -30,7 +31,7 @@ function getSpeakEasyConfig() {
 }
 
 function saveSpeakEasyConfig(cfg: any) {
-  writeFileSync(SPEAKEASY_CONFIG, JSON.stringify(cfg, null, 2))
+  writeFileAtomic(SPEAKEASY_CONFIG, JSON.stringify(cfg, null, 2))
 }
 
 function getClaudeSettings() {
@@ -41,7 +42,7 @@ function getClaudeSettings() {
 }
 
 function saveClaudeSettings(settings: any) {
-  writeFileSync(CLAUDE_SETTINGS, JSON.stringify(settings, null, 2))
+  writeFileAtomic(CLAUDE_SETTINGS, JSON.stringify(settings, null, 2))
 }
 
 const app = new Hono()

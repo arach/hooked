@@ -5,10 +5,11 @@
  * A background reminder process checks for stale alerts and re-announces.
  */
 
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
+import { existsSync, readFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { history } from './history'
+import { writeFileAtomic } from './fs'
 
 const HOOKED_HOME = join(homedir(), '.hooked')
 const ALERTS_FILE = join(HOOKED_HOME, 'pending-alerts.json')
@@ -43,7 +44,7 @@ function saveAlerts(alerts: AlertsRegistry): void {
     }
     return
   }
-  writeFileSync(ALERTS_FILE, JSON.stringify(alerts, null, 2))
+  writeFileAtomic(ALERTS_FILE, JSON.stringify(alerts, null, 2))
 }
 
 export function setAlert(alert: Omit<PendingAlert, 'timestamp' | 'reminders'>): PendingAlert {

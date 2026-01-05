@@ -7,11 +7,12 @@
  *   (default)    Quick, non-interactive install/update
  */
 
-import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, readdirSync, chmodSync } from 'fs'
+import { existsSync, mkdirSync, cpSync, readFileSync, readdirSync, chmodSync } from 'fs'
 import { execSync } from 'child_process'
 import { homedir } from 'os'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { writeFileAtomic } from './core/fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = join(__dirname, '..')
@@ -20,6 +21,7 @@ const PROJECT_ROOT = join(__dirname, '..')
 const HOOKED_HOME = join(homedir(), '.hooked')
 const HOOKED_SRC = join(HOOKED_HOME, 'src')
 const HOOKED_BIN = join(HOOKED_HOME, 'bin')
+const HOOKED_BACKUPS = join(HOOKED_HOME, 'backups')
 const CLAUDE_DIR = join(homedir(), '.claude')
 const SETTINGS_FILE = join(CLAUDE_DIR, 'settings.json')
 const SETTINGS_LOCAL_FILE = join(CLAUDE_DIR, 'settings.local.json')
@@ -27,6 +29,52 @@ const COMMANDS_DIR = join(CLAUDE_DIR, 'commands')
 
 const args = process.argv.slice(2)
 const isOnboarding = args.includes('--onboard') || args.includes('-o')
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function entryHasCommand(entry: unknown, command: string): boolean {
+  if (!isRecord(entry)) return false
+  if (entry.command === command) return true
+  const hooks = entry.hooks
+  if (Array.isArray(hooks)) {
+    return hooks.some(hook => isRecord(hook) && hook.command === command)
+  }
+  return false
+}
+
+function ensureHookCommand(hooks: Record<string, unknown>, hookName: string, command: string): boolean {
+  const existing = hooks[hookName]
+
+  if (Array.isArray(existing)) {
+    if (existing.some(entry => entryHasCommand(entry, command))) {
+      return false
+    }
+    const entryWithHooks = existing.find(entry => isRecord(entry) && Array.isArray(entry.hooks))
+    if (entryWithHooks && isRecord(entryWithHooks) && Array.isArray(entryWithHooks.hooks)) {
+      entryWithHooks.hooks.push({ type: 'command', command })
+    } else {
+      existing.push({ hooks: [{ type: 'command', command }] })
+    }
+    return true
+  }
+
+  if (isRecord(existing)) {
+    if (entryHasCommand(existing, command)) {
+      return false
+    }
+    if (Array.isArray(existing.hooks)) {
+      existing.hooks.push({ type: 'command', command })
+      return true
+    }
+    hooks[hookName] = [existing, { hooks: [{ type: 'command', command }] }]
+    return true
+  }
+
+  hooks[hookName] = [{ hooks: [{ type: 'command', command }] }]
+  return true
+}
 
 function log(msg: string): void {
   console.log(`  ${msg}`)
@@ -48,6 +96,45 @@ function copyDirRecursive(src: string, dest: string): void {
       cpSync(srcPath, destPath)
     }
   }
+}
+
+function backupFile(src: string, dest: string): void {
+  if (!existsSync(src)) return
+  const destDir = dirname(dest)
+  if (!existsSync(destDir)) {
+    mkdirSync(destDir, { recursive: true })
+  }
+  cpSync(src, dest)
+}
+
+function getBackupFolderName(): string {
+  const dateStamp = new Date().toISOString().slice(0, 10)
+  const baseName = `${dateStamp}-hooked-backup`
+  let name = baseName
+  let counter = 1
+
+  while (existsSync(join(HOOKED_BACKUPS, name))) {
+    name = `${baseName}-${counter}`
+    counter += 1
+  }
+
+  return name
+}
+
+function backupExistingInstall(): void {
+  const hasClaudeSettings = existsSync(SETTINGS_FILE) || existsSync(SETTINGS_LOCAL_FILE)
+
+  if (!hasClaudeSettings) {
+    return
+  }
+
+  const backupRoot = join(HOOKED_BACKUPS, getBackupFolderName())
+  const claudeBackup = join(backupRoot, 'claude')
+
+  backupFile(SETTINGS_FILE, join(claudeBackup, 'settings.json'))
+  backupFile(SETTINGS_LOCAL_FILE, join(claudeBackup, 'settings.local.json'))
+
+  log(`Backed up Claude settings to ${backupRoot}`)
 }
 
 async function runOnboarding(): Promise<void> {
@@ -139,82 +226,111 @@ async function runInstall(): Promise<void> {
 
   // 6. Add permission to ~/.claude/settings.local.json
   let localSettings: Record<string, unknown> = {}
+  let localSettingsChanged = false
+  let permissionAdded = false
   if (existsSync(SETTINGS_LOCAL_FILE)) {
     try {
       localSettings = JSON.parse(readFileSync(SETTINGS_LOCAL_FILE, 'utf-8'))
     } catch {
       // Start fresh if parse fails
+      localSettingsChanged = true
     }
+  } else {
+    localSettingsChanged = true
   }
 
-  if (!localSettings.permissions) {
+  if (!isRecord(localSettings.permissions)) {
     localSettings.permissions = { allow: [], deny: [] }
+    localSettingsChanged = true
   }
   const permissions = localSettings.permissions as { allow: string[]; deny: string[] }
-  if (!permissions.allow) permissions.allow = []
+  if (!permissions.allow) {
+    permissions.allow = []
+    localSettingsChanged = true
+  }
 
   const hookedPermission = 'Bash(~/.hooked/bin/hooked:*)'
   if (!permissions.allow.includes(hookedPermission)) {
     permissions.allow.push(hookedPermission)
-    writeFileSync(SETTINGS_LOCAL_FILE, JSON.stringify(localSettings, null, 2))
-    log('Added hooked to allowed commands')
+    localSettingsChanged = true
+    permissionAdded = true
   }
 
   // 7. Configure hooks in ~/.claude/settings.json
   let settings: Record<string, unknown> = {}
+  let settingsChanged = false
   if (existsSync(SETTINGS_FILE)) {
     try {
       settings = JSON.parse(readFileSync(SETTINGS_FILE, 'utf-8'))
     } catch {
       // Start fresh if parse fails
+      settingsChanged = true
     }
+  } else {
+    settingsChanged = true
   }
 
-  if (!settings.hooks) {
+  if (!isRecord(settings.hooks)) {
     settings.hooks = {}
+    settingsChanged = true
   }
-  const hooks = settings.hooks as Record<string, unknown[]>
+  const hooks = settings.hooks as Record<string, unknown>
 
   const tsxBin = join(HOOKED_HOME, 'node_modules', '.bin', 'tsx')
 
-  // Configure notification hook
-  hooks.Notification = [{
-    hooks: [{
-      type: 'command',
-      command: `${tsxBin} ${HOOKED_SRC}/notification.ts`,
-    }],
-  }]
+  // Configure hooks (merge instead of overwrite)
+  if (ensureHookCommand(hooks, 'Notification', `${tsxBin} ${HOOKED_SRC}/notification.ts`)) {
+    settingsChanged = true
+  }
+  if (ensureHookCommand(hooks, 'Stop', `${tsxBin} ${HOOKED_SRC}/stop-hook.ts`)) {
+    settingsChanged = true
+  }
+  if (ensureHookCommand(hooks, 'UserPromptSubmit', `${tsxBin} ${HOOKED_SRC}/user-prompt-submit.ts`)) {
+    settingsChanged = true
+  }
 
-  // Configure stop hook
-  hooks.Stop = [{
-    hooks: [{
-      type: 'command',
-      command: `${tsxBin} ${HOOKED_SRC}/stop-hook.ts`,
-    }],
-  }]
+  if (localSettingsChanged || settingsChanged) {
+    backupExistingInstall()
+  }
 
-  // Configure user prompt submit hook (clears pending alerts)
-  hooks.UserPromptSubmit = [{
-    hooks: [{
-      type: 'command',
-      command: `${tsxBin} ${HOOKED_SRC}/user-prompt-submit.ts`,
-    }],
-  }]
+  if (localSettingsChanged) {
+    writeFileAtomic(SETTINGS_LOCAL_FILE, JSON.stringify(localSettings, null, 2))
+    log(permissionAdded ? 'Added hooked to allowed commands' : 'Updated ~/.claude/settings.local.json')
+  }
 
-  writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
-  log('Configured hooks in ~/.claude/settings.json')
+  if (settingsChanged) {
+    writeFileAtomic(SETTINGS_FILE, JSON.stringify(settings, null, 2))
+    log('Configured hooks in ~/.claude/settings.json')
+  }
 
   // 8. Copy slash command to ~/.claude/commands/
   const commandSrc = join(PROJECT_ROOT, '.claude', 'commands', 'hooked.md')
   if (existsSync(commandSrc)) {
-    cpSync(commandSrc, join(COMMANDS_DIR, 'hooked.md'))
-    log('Installed /hooked command globally')
+    const commandDest = join(COMMANDS_DIR, 'hooked.md')
+    const srcContents = readFileSync(commandSrc, 'utf-8')
+    let shouldCopy = true
+
+    if (existsSync(commandDest)) {
+      const destContents = readFileSync(commandDest, 'utf-8')
+      if (destContents === srcContents) {
+        shouldCopy = false
+      } else {
+        const backupPath = `${commandDest}.backup-${Date.now()}`
+        cpSync(commandDest, backupPath)
+        log(`Backed up existing /hooked command to ${backupPath}`)
+      }
+    }
+
+    if (shouldCopy) {
+      cpSync(commandSrc, commandDest)
+      log('Installed /hooked command globally')
+    }
   }
 
   // 9. Ensure config exists with defaults
   const configFile = join(HOOKED_HOME, 'config.json')
   if (!existsSync(configFile)) {
-    writeFileSync(configFile, JSON.stringify({
+    writeFileAtomic(configFile, JSON.stringify({
       voice: {
         enabled: true,
         volume: 1.0,

@@ -1,6 +1,7 @@
 import { homedir } from 'os'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { writeFileAtomic } from './fs'
 
 export interface SpeakTemplates {
   loopStarted: string      // vars: {project}, {goal}
@@ -131,7 +132,7 @@ export function renderTemplate(key: keyof SpeakTemplates, vars: Record<string, s
 
 export function saveConfig(cfg: HookedConfig): void {
   ensureDir()
-  writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2))
+  writeFileAtomic(CONFIG_FILE, JSON.stringify(cfg, null, 2))
 }
 
 // Voice helpers

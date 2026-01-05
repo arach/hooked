@@ -6,10 +6,11 @@
  * 2. When Claude stops, the hook claims it → creates session state (~/.hooked/state/{sessionId}.json)
  */
 
-import { existsSync, mkdirSync, writeFileSync, unlinkSync, readFileSync, readdirSync } from 'fs'
+import { existsSync, mkdirSync, unlinkSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { history } from './core/history'
+import { writeFileAtomic } from './core/fs'
 
 const HOOKED_HOME = join(homedir(), '.hooked')
 const STATE_DIR = join(HOOKED_HOME, 'state')
@@ -65,7 +66,7 @@ export function setPending(mode: ContinuationMode, value: string, options?: Pend
     targetSession: options?.targetSession,
     targetFolder: options?.targetFolder,
   }
-  writeFileSync(PENDING_FILE, JSON.stringify(state, null, 2))
+  writeFileAtomic(PENDING_FILE, JSON.stringify(state, null, 2))
 
   // Log to history
   history.log({
@@ -134,7 +135,7 @@ export function getSession(sessionId: string): ContinuationState | null {
 
 export function setSession(sessionId: string, state: ContinuationState): void {
   ensureDirs()
-  writeFileSync(getSessionFile(sessionId), JSON.stringify(state, null, 2))
+  writeFileAtomic(getSessionFile(sessionId), JSON.stringify(state, null, 2))
 }
 
 export function clearSession(sessionId: string, reason?: string, projectName?: string): void {
@@ -220,7 +221,7 @@ export function claim(sessionId: string, projectName?: string): ContinuationStat
 
 export function setPause(): void {
   ensureDirs()
-  writeFileSync(PAUSE_FILE, new Date().toISOString())
+  writeFileAtomic(PAUSE_FILE, new Date().toISOString())
 }
 
 export function isPaused(): boolean {

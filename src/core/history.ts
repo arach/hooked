@@ -42,6 +42,13 @@ function getDb(): Database.Database {
 
   db = new Database(DB_PATH)
 
+  try {
+    db.pragma('journal_mode = WAL')
+    db.pragma('busy_timeout = 5000')
+  } catch {
+    // Ignore pragma errors and continue
+  }
+
   // Create table if not exists
   db.exec(`
     CREATE TABLE IF NOT EXISTS events (
@@ -68,28 +75,39 @@ function getDb(): Database.Database {
  * Log an event to history.
  */
 export function logEvent(event: Omit<HistoryEvent, 'id' | 'timestamp'>): StoredEvent {
-  const db = getDb()
-
-  const stmt = db.prepare(`
-    INSERT INTO events (timestamp, type, project, session_id, hook_event_name, message, payload)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `)
-
   const timestamp = new Date().toISOString()
-  const result = stmt.run(
-    timestamp,
-    event.type,
-    event.project,
-    event.session_id || null,
-    event.hook_event_name || null,
-    event.message || null,
-    event.payload ? JSON.stringify(event.payload) : null
-  )
 
-  return {
-    id: result.lastInsertRowid as number,
-    timestamp,
-    ...event,
+  try {
+    const db = getDb()
+
+    const stmt = db.prepare(`
+      INSERT INTO events (timestamp, type, project, session_id, hook_event_name, message, payload)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    const result = stmt.run(
+      timestamp,
+      event.type,
+      event.project,
+      event.session_id || null,
+      event.hook_event_name || null,
+      event.message || null,
+      event.payload ? JSON.stringify(event.payload) : null
+    )
+
+    return {
+      id: result.lastInsertRowid as number,
+      timestamp,
+      ...event,
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(`[hooked:history] Failed to log event: ${message}`)
+    return {
+      id: -1,
+      timestamp,
+      ...event,
+    }
   }
 }
 
