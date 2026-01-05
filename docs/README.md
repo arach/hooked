@@ -175,6 +175,7 @@ pnpm install
 
 ```bash
 pnpm run hooked:init
+pnpm run hooked:init -- --no-backup   # Skip Claude settings backups
 ```
 
 This will:

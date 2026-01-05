@@ -14,6 +14,7 @@ A TypeScript toolkit for Claude Code hooks. Voice notifications and smart contin
 git clone https://github.com/arach/hooked.git
 cd hooked && pnpm install
 pnpm run hooked:init
+pnpm run hooked:init -- --no-backup   # Skip Claude settings backups
 ```
 
 ## Usage

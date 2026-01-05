@@ -5,9 +5,12 @@
  * Two modes:
  *   --onboard    Interactive first-time setup with explanations
  *   (default)    Quick, non-interactive install/update
+ *
+ * Flags:
+ *   --no-backup  Skip Claude settings backups
  */
 
-import { existsSync, mkdirSync, cpSync, readFileSync, readdirSync, chmodSync } from 'fs'
+import { existsSync, mkdirSync, cpSync, readFileSync, readdirSync, chmodSync, statSync, rmSync } from 'fs'
 import { execSync } from 'child_process'
 import { homedir } from 'os'
 import { join, dirname } from 'path'
@@ -22,6 +25,7 @@ const HOOKED_HOME = join(homedir(), '.hooked')
 const HOOKED_SRC = join(HOOKED_HOME, 'src')
 const HOOKED_BIN = join(HOOKED_HOME, 'bin')
 const HOOKED_BACKUPS = join(HOOKED_HOME, 'backups')
+const BACKUP_RETENTION_LIMIT = 10
 const CLAUDE_DIR = join(homedir(), '.claude')
 const SETTINGS_FILE = join(CLAUDE_DIR, 'settings.json')
 const SETTINGS_LOCAL_FILE = join(CLAUDE_DIR, 'settings.local.json')
@@ -29,6 +33,12 @@ const COMMANDS_DIR = join(CLAUDE_DIR, 'commands')
 
 const args = process.argv.slice(2)
 const isOnboarding = args.includes('--onboard') || args.includes('-o')
+const isNoBackup = args.includes('--no-backup')
+
+type BackupResult = {
+  created: boolean
+  pruned: number
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -121,13 +131,53 @@ function getBackupFolderName(): string {
   return name
 }
 
-function backupExistingInstall(): void {
+function isHookedBackupDir(name: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}-hooked-backup(?:-\d+)?$/.test(name)
+}
+
+function pruneOldBackups(limit: number): number {
+  if (!existsSync(HOOKED_BACKUPS)) return 0
+
+  const entries = readdirSync(HOOKED_BACKUPS, { withFileTypes: true })
+  const backups = entries
+    .filter(entry => entry.isDirectory() && isHookedBackupDir(entry.name))
+    .map(entry => {
+      const fullPath = join(HOOKED_BACKUPS, entry.name)
+      let mtimeMs = 0
+      try {
+        mtimeMs = statSync(fullPath).mtimeMs
+      } catch {
+        mtimeMs = 0
+      }
+      return { name: entry.name, path: fullPath, mtimeMs }
+    })
+
+  if (backups.length <= limit) return 0
+
+  backups.sort((a, b) => b.mtimeMs - a.mtimeMs)
+  const toRemove = backups.slice(limit)
+  let removed = 0
+
+  for (const backup of toRemove) {
+    try {
+      rmSync(backup.path, { recursive: true, force: true })
+      removed += 1
+    } catch {
+      // Ignore pruning errors to avoid failing install
+    }
+  }
+
+  return removed
+}
+
+function backupExistingInstall(retentionLimit: number): BackupResult {
   const hasClaudeSettings = existsSync(SETTINGS_FILE) || existsSync(SETTINGS_LOCAL_FILE)
 
   if (!hasClaudeSettings) {
-    return
+    return { created: false, pruned: 0 }
   }
 
+  mkdirSync(HOOKED_BACKUPS, { recursive: true })
   const backupRoot = join(HOOKED_BACKUPS, getBackupFolderName())
   const claudeBackup = join(backupRoot, 'claude')
 
@@ -135,6 +185,9 @@ function backupExistingInstall(): void {
   backupFile(SETTINGS_LOCAL_FILE, join(claudeBackup, 'settings.local.json'))
 
   log(`Backed up Claude settings to ${backupRoot}`)
+  const pruned = pruneOldBackups(retentionLimit)
+
+  return { created: true, pruned }
 }
 
 async function runOnboarding(): Promise<void> {
@@ -277,20 +330,34 @@ async function runInstall(): Promise<void> {
   const hooks = settings.hooks as Record<string, unknown>
 
   const tsxBin = join(HOOKED_HOME, 'node_modules', '.bin', 'tsx')
+  let hooksAdded = 0
 
   // Configure hooks (merge instead of overwrite)
   if (ensureHookCommand(hooks, 'Notification', `${tsxBin} ${HOOKED_SRC}/notification.ts`)) {
     settingsChanged = true
+    hooksAdded += 1
   }
   if (ensureHookCommand(hooks, 'Stop', `${tsxBin} ${HOOKED_SRC}/stop-hook.ts`)) {
     settingsChanged = true
+    hooksAdded += 1
   }
   if (ensureHookCommand(hooks, 'UserPromptSubmit', `${tsxBin} ${HOOKED_SRC}/user-prompt-submit.ts`)) {
     settingsChanged = true
+    hooksAdded += 1
   }
 
+  let backupStatus = 'none'
+  let backupsPruned = 0
   if (localSettingsChanged || settingsChanged) {
-    backupExistingInstall()
+    if (isNoBackup) {
+      backupStatus = 'skipped (--no-backup)'
+    } else {
+      const backupResult = backupExistingInstall(BACKUP_RETENTION_LIMIT)
+      backupsPruned = backupResult.pruned
+      backupStatus = backupResult.created ? 'created' : 'not needed'
+    }
+  } else {
+    backupStatus = 'none (no changes)'
   }
 
   if (localSettingsChanged) {
@@ -305,30 +372,39 @@ async function runInstall(): Promise<void> {
 
   // 8. Copy slash command to ~/.claude/commands/
   const commandSrc = join(PROJECT_ROOT, '.claude', 'commands', 'hooked.md')
+  let commandStatus = 'missing source'
   if (existsSync(commandSrc)) {
     const commandDest = join(COMMANDS_DIR, 'hooked.md')
     const srcContents = readFileSync(commandSrc, 'utf-8')
     let shouldCopy = true
+    commandStatus = 'installed'
 
     if (existsSync(commandDest)) {
       const destContents = readFileSync(commandDest, 'utf-8')
       if (destContents === srcContents) {
         shouldCopy = false
+        commandStatus = 'unchanged'
       } else {
-        const backupPath = `${commandDest}.backup-${Date.now()}`
-        cpSync(commandDest, backupPath)
-        log(`Backed up existing /hooked command to ${backupPath}`)
+        if (!isNoBackup) {
+          const backupPath = `${commandDest}.backup-${Date.now()}`
+          cpSync(commandDest, backupPath)
+          log(`Backed up existing /hooked command to ${backupPath}`)
+          commandStatus = 'updated'
+        } else {
+          commandStatus = 'overwritten (no backup)'
+        }
       }
     }
 
     if (shouldCopy) {
       cpSync(commandSrc, commandDest)
-      log('Installed /hooked command globally')
+      log(commandStatus === 'installed' ? 'Installed /hooked command globally' : 'Updated /hooked command globally')
     }
   }
 
   // 9. Ensure config exists with defaults
   const configFile = join(HOOKED_HOME, 'config.json')
+  let configCreated = false
   if (!existsSync(configFile)) {
     writeFileAtomic(configFile, JSON.stringify({
       voice: {
@@ -354,6 +430,7 @@ async function runInstall(): Promise<void> {
       }
     }, null, 2))
     log('Created default config')
+    configCreated = true
   }
 
   // 10. Clean up stale session registry entries (older than 24h)
@@ -363,6 +440,27 @@ async function runInstall(): Promise<void> {
     log('Cleaned up stale sessions')
   } catch {
     // Ignore if log module not available yet
+  }
+
+  const summaryLines: string[] = []
+  summaryLines.push(`Hooks added: ${hooksAdded}`)
+  summaryLines.push(
+    `Claude settings updated: settings.json ${settingsChanged ? 'yes' : 'no'}, settings.local.json ${localSettingsChanged ? 'yes' : 'no'}`
+  )
+  summaryLines.push(`/hooked command: ${commandStatus}`)
+  summaryLines.push(`Backup: ${backupStatus}`)
+  if (!isNoBackup) {
+    summaryLines.push(`Backup retention: keep last ${BACKUP_RETENTION_LIMIT}`)
+  }
+  if (backupsPruned > 0) {
+    summaryLines.push(`Backups pruned: ${backupsPruned}`)
+  }
+  summaryLines.push(`Config created: ${configCreated ? 'yes' : 'no'}`)
+
+  console.log('')
+  log('Summary')
+  for (const line of summaryLines) {
+    log(`- ${line}`)
   }
 
   console.log('')
