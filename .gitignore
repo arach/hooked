@@ -111,3 +111,6 @@ out/
 # Backup files/directories
 *.bak
 *.bak/
+
+# Package manager
+package-lock.json
