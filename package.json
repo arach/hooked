@@ -1,7 +1,7 @@
 {
   "name": "@arach/hooked",
-  "version": "1.1.0",
-  "description": "Smart hooks for Claude Code - voice alerts, stop hook management, and until loops",
+  "version": "1.1.1",
+  "description": "Smart hooks for Claude Code and Amp - voice alerts, stop hook management, and until loops",
   "type": "module",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -28,12 +28,16 @@
     "prepublishOnly": "npm run build",
     "hooked:init": "npx tsx src/init.ts",
     "deploy": "bun run deploy.ts",
+    "deploy:amp": "bun run deploy-amp.ts",
     "test": "bun src/test.ts",
     "test:notification": "bun src/test.ts"
   },
   "keywords": [
     "claude",
     "claude-code",
+    "amp",
+    "ampcode",
+    "sourcegraph",
     "anthropic",
     "hooks",
     "stop-hooks",
