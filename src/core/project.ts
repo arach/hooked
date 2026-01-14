@@ -6,12 +6,15 @@
  *
  * This module provides consistent project matching between CLI and hooks.
  *
- * Optional: Create a .projectName file in your project root to customize
- * how hooked refers to your project in voice announcements.
+ * Configuration priority for project names:
+ * 1. .hooked.json - structured config with name and pronunciation fields
+ * 2. .projectName - legacy plain text file (for backwards compatibility)
+ * 3. Basename of project path with dots replaced for speech clarity
  */
 
 import { basename, join } from 'path'
 import { existsSync, readFileSync } from 'fs'
+import { projectConfig } from './project-config'
 
 /**
  * Convert a filesystem path to Claude's project folder name format.
@@ -34,10 +37,16 @@ export function folderToPath(folder: string): string {
 }
 
 /**
- * Read custom project name from .projectName file if it exists.
- * Returns null if file doesn't exist or is empty.
+ * Read custom project name from config files.
+ * Priority: .hooked.json name field > .projectName file
+ * Returns null if no custom name configured.
  */
 export function getCustomName(projectPath: string): string | null {
+  // Check .hooked.json first
+  const configName = projectConfig.getName(projectPath)
+  if (configName) return configName
+
+  // Fall back to legacy .projectName file
   const namePath = join(projectPath, '.projectName')
   if (!existsSync(namePath)) return null
 
@@ -47,6 +56,28 @@ export function getCustomName(projectPath: string): string | null {
   } catch {
     return null
   }
+}
+
+/**
+ * Get the pronunciation for a project (for TTS).
+ * Priority: .hooked.json pronunciation > .hooked.json name > display name
+ */
+export function getPronunciation(projectPath: string): string {
+  // Check .hooked.json pronunciation field first
+  const pronunciation = projectConfig.getPronunciation(projectPath)
+  if (pronunciation) return pronunciation
+
+  // Fall back to display name
+  return getDisplayName(projectPath)
+}
+
+/**
+ * Get pronunciation from a project folder.
+ * Users-arach-dev-my-project → pronunciation or display name
+ */
+export function getPronunciationFromFolder(folder: string): string {
+  const path = folderToPath(folder)
+  return getPronunciation(path)
 }
 
 /**
@@ -103,6 +134,8 @@ export const project = {
   extractFolder: extractProjectFolder,
   getDisplayName,
   getDisplayNameFromFolder,
+  getPronunciation,
+  getPronunciationFromFolder,
   getCustomName,
   folderMatchesPath,
 }
