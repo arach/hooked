@@ -49,10 +49,14 @@ function saveAlerts(alerts: AlertsRegistry): void {
 
 export function setAlert(alert: Omit<PendingAlert, 'timestamp' | 'reminders'>): PendingAlert {
   const alerts = getAlerts()
+  const existing = alerts[alert.sessionId]
+
+  // Preserve reminderPid if a reminder process is already running
   const fullAlert: PendingAlert = {
     ...alert,
     timestamp: new Date().toISOString(),
-    reminders: 0,
+    reminders: existing?.reminders ?? 0,
+    reminderPid: existing?.reminderPid,  // Keep existing reminder process
   }
   alerts[alert.sessionId] = fullAlert
   saveAlerts(alerts)
@@ -82,6 +86,15 @@ export function clearAlert(sessionId: string, reason: string = 'user_activity'):
   const alerts = getAlerts()
   const alert = alerts[sessionId]
   if (!alert) return false
+
+  // Kill the reminder process if running
+  if (alert.reminderPid) {
+    try {
+      process.kill(alert.reminderPid)
+    } catch {
+      // Process already dead, ignore
+    }
+  }
 
   // Log to history before clearing
   history.log({

@@ -16,6 +16,7 @@ import { project } from './core/project';
 import { alerts } from './core/alerts';
 import { config } from './core/config';
 import { history } from './core/history';
+import { detectPlatform, parsePayload, type Platform, type UnifiedPayload } from './core/platform';
 
 // Types
 interface NoOpLogger {
@@ -25,36 +26,30 @@ interface NoOpLogger {
 
 type Logger = winston.Logger | NoOpLogger;
 
-interface NotificationPayload {
-  hook_event_name?: string;
-  message?: string;
-  transcript_path?: string;
-  session_id?: string;
-  [key: string]: unknown;
-}
-
 const enableFileLogging = process.env.HOOKED_LOG_FILE === 'true';
 const logger: Logger = enableFileLogging ? createLogger() : createNoOpLogger();
 const notificationType = process.argv[2];
+const platform = detectPlatform();
 
-logger.info('Notification script started', { notificationType });
+logger.info('Notification script started', { notificationType, platform });
 
 void main();
 
 async function main() {
-  let payload: string;
+  let rawPayload: string;
   try {
-    payload = await readStdin();
+    rawPayload = await readStdin();
   } catch (error) {
     logger.error('Failed to read notification payload', { error: extractErrorMessage(error) });
     return;
   }
 
-  logger.info('Received payload from stdin', { payloadLength: payload.length });
+  logger.info('Received payload from stdin', { payloadLength: rawPayload.length, platform });
 
-  const parsedPayloadResult = parseNotificationPayload(payload);
+  const parsedPayloadResult = parsePayload(rawPayload, platform, notificationType);
   logger.info('Created notification data object', {
     type: notificationType,
+    platform,
     hasParsedPayload: Boolean(parsedPayloadResult.payload),
     wasJson: parsedPayloadResult.wasJson
   });
@@ -66,40 +61,54 @@ async function main() {
   }
 }
 
-async function handleNotification(parsedPayload: NotificationPayload | null) {
+async function handleNotification(parsedPayload: UnifiedPayload | null) {
   const hookEventName = parsedPayload?.hook_event_name;
   const message = parsedPayload?.message;
   const transcriptPath = parsedPayload?.transcript_path;
   const sessionId = parsedPayload?.session_id;
+  const payloadPlatform = parsedPayload?.platform ?? platform;
 
-  logger.info('Processing notification', { transcriptPath, hookEventName, sessionId });
+  logger.info('Processing notification', { transcriptPath, hookEventName, sessionId, platform: payloadPlatform });
 
   // Extract project info
   const projectFolder = project.extractFolder(transcriptPath || '') || 'unknown';
   const displayName = project.getDisplayNameFromFolder(projectFolder);
+  const pronunciation = project.getPronunciationFromFolder(projectFolder);
 
-  logger.info('Extracted project info', { projectFolder, displayName });
+  logger.info('Extracted project info', { projectFolder, displayName, pronunciation });
 
-  // Log to history (full Claude payload stored in SQLite)
+  // Log to history (full payload stored in SQLite)
   const eventType = hookEventName === 'Stop' ? 'stop' : 'notification';
+  const rawPayloadData = parsedPayload?.raw;
+  const payloadForHistory = (rawPayloadData && typeof rawPayloadData === 'object' && !Array.isArray(rawPayloadData))
+    ? rawPayloadData as Record<string, unknown>
+    : undefined;
+  
   history.log({
     type: eventType,
     project: displayName,
     session_id: sessionId,
     hook_event_name: hookEventName,
     message,
-    payload: parsedPayload || undefined,  // Full Claude metadata as JSON
+    payload: payloadForHistory,
   });
 
-  // Build and speak message
-  const speechMessage = buildSpeechMessage(displayName, hookEventName, message);
-  logger.info('Speaking', { speechMessage });
-
-  await speak(speechMessage, { sessionId });
-
-  // Track alert for reminders (only for notifications that need user attention)
+  // Determine if this notification needs attention (uses notification_type from payload)
   const alertConfig = config.getAlertConfig();
-  const alertType = shouldAlert(hookEventName, message);
+  const alertType = shouldAlert(parsedPayload);
+  const notificationType = (parsedPayload?.raw as Record<string, unknown>)?.notification_type;
+
+  // Only speak for actionable notifications (permission requests, errors)
+  // Skip idle_prompt - these are natural stopping points, not urgent
+  if (notificationType !== 'idle_prompt') {
+    const speechMessage = buildSpeechMessage(pronunciation, hookEventName, message, payloadPlatform);
+    logger.info('Speaking', { speechMessage, displayName, pronunciation, platform: payloadPlatform });
+    await speak(speechMessage, { sessionId });
+    // Print to console for hook feedback
+    console.log(`🔊 ${speechMessage}`);
+  } else {
+    logger.info('Skipping speech for idle_prompt (natural stopping point)', { displayName });
+  }
 
   if (sessionId && alertConfig.enabled && alertType) {
     // Check if there's already an active reminder for this session
@@ -125,31 +134,30 @@ async function handleNotification(parsedPayload: NotificationPayload | null) {
       logger.info('Reminder already active for session, skipping spawn', { sessionId, pid: existingAlert.reminderPid });
     }
   } else if (alertType === null) {
-    logger.info('Informational notification, no alert needed', { hookEventName, message });
+    logger.info('Informational notification, no alert needed', { hookEventName, message, notificationType });
   }
-
-  // Print to console for hook feedback
-  console.log(`🔊 ${speechMessage}`);
 }
 
 /**
  * Determine if this notification needs user attention (should create an alert).
+ * Uses the notification_type field from Claude Code's payload for accurate categorization.
  * Returns the alert type if yes, null if it's just informational.
  */
-function shouldAlert(hookEventName?: string, message?: string): string | null {
-  const msg = (message || '').toLowerCase();
+function shouldAlert(parsedPayload: UnifiedPayload | null): string | null {
+  const notificationType = (parsedPayload?.raw as Record<string, unknown>)?.notification_type;
+  const msg = (parsedPayload?.message || '').toLowerCase();
 
-  // Permission requests - user MUST respond
-  if (msg.includes('permission') || hookEventName === 'PermissionRequest') {
+  // Use notification_type from payload (most reliable)
+  if (notificationType === 'permission_prompt') {
     return 'permission';
   }
 
-  // Waiting for input - user MUST respond
-  if (msg.includes('waiting') || msg.includes('input')) {
-    return 'input';
+  // idle_prompt = natural stopping point, no alert needed
+  if (notificationType === 'idle_prompt') {
+    return null;
   }
 
-  // Errors - user should see these
+  // Fallback to message content for other cases (errors, etc.)
   if (msg.includes('error') || msg.includes('failed')) {
     return 'attention';
   }
@@ -216,26 +224,18 @@ function createNoOpLogger(): NoOpLogger {
 }
 
 // Utility functions
-function parseNotificationPayload(rawPayload: string): { payload: NotificationPayload | null; wasJson: boolean } {
-  try {
-    const jsonPayload = JSON.parse(rawPayload);
-
-    if (typeof jsonPayload !== 'object' || jsonPayload === null) {
-      return { payload: null, wasJson: true };
-    }
-
-    return { payload: jsonPayload as NotificationPayload, wasJson: true };
-  } catch {
-    return { payload: null, wasJson: false };
-  }
-}
-
-function buildSpeechMessage(projectName: string, hookEventName?: string, message?: string): string {
+function buildSpeechMessage(projectName: string, hookEventName?: string, message?: string, msgPlatform?: Platform): string {
+  const agentName = msgPlatform === 'amp' ? 'Amp' : 'Claude';
+  
   if (hookEventName === 'Stop') {
-    return `In ${projectName}, Claude completed a task`;
+    return `In ${projectName}, ${agentName} completed a task`;
   }
 
-  const cleanMessage = (message ?? 'Notification received').replace(/Claude Code/g, 'Claude');
+  // Clean up platform references in message
+  let cleanMessage = message ?? 'Notification received';
+  cleanMessage = cleanMessage.replace(/Claude Code/g, 'Claude');
+  cleanMessage = cleanMessage.replace(/Amp/g, 'Amp'); // Keep Amp as-is
+  
   return `In ${projectName}, ${cleanMessage}`;
 }
 
