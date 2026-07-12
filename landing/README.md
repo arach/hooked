@@ -5,7 +5,7 @@ The static site published at [hooked.arach.dev](https://hooked.arach.dev/). The 
 ## Development
 
 ```bash
-python3 -m http.server 4173 --bind 127.0.0.1 --directory landing/public
+bunx --bun serve landing/public -l 4173
 ```
 
 Open `http://localhost:4173/`.
