@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="panel" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171d25"/>
+      <stop offset="1" stop-color="#080b0f"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="25" y1="13" x2="47" y2="51" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b9d1ff"/>
+      <stop offset="1" stop-color="#73a3ff"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(32 14) rotate(90) scale(38)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6f9fee" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#6f9fee" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x=".75" y=".75" width="62.5" height="62.5" rx="17.25" fill="url(#panel)" stroke="#fff" stroke-opacity=".13" stroke-width="1.5"/>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#glow)"/>
+  <path d="M17 13v25.5C17 45.4 21.9 51 28 51s11-5.6 11-12.5V32" fill="none" stroke="#f7f9fb" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M47 51V25.5C47 18.6 42.1 13 36 13s-11 5.6-11 12.5V32" fill="none" stroke="url(#blue)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M25 32h14" fill="none" stroke="#090d12" stroke-width="8" stroke-linecap="round"/>
+  <path d="M26 32h12" fill="none" stroke="#66e6a6" stroke-width="3.25" stroke-linecap="round"/>
+</svg>

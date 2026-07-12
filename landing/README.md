@@ -1,65 +1,35 @@
-# Hooked Landing Page
+# Hooked Site
 
-Beautiful, modern landing page for the Hooked project - intelligent notifications for Claude Code hooks.
-
-## Tech Stack
-
-- **Next.js 16** - React framework with App Router
-- **Tailwind CSS 4** - Utility-first CSS framework
-- **shadcn/ui** - High-quality React components
-- **Lucide Icons** - Beautiful, consistent icons
-- **TypeScript** - Type-safe development
+The static site published at [hooked.arach.dev](https://hooked.arach.dev/). The public guide covers the released `@arach/hooked` package and labels the native macOS HUD as a separate developer preview until the two exchange events automatically.
 
 ## Development
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
+bunx --bun serve landing/public -l 4173
 ```
 
-The development server will start at `http://localhost:3000` (or next available port).
+Open `http://localhost:4173/`.
 
-## Features
+## Source
 
-- Responsive design that works on all devices
-- Modern gradient design with violet/purple theme
-- Interactive copy-to-clipboard functionality
-- Clean, accessible UI components
-- Optimized for performance
+- `public/index.html`, `public/styles.css`, and `public/script.js` own the landing page.
+- `public/docs/` owns the curated public documentation.
+- `public/assets/hooked-mark.svg` is the shared visual mark.
+- The deploy workflow copies the repository `install.sh` to `/install` so the canonical one-line installer always matches the package source.
 
-## Design Inspiration
+## Verification
 
-This landing page takes design inspiration from:
-- **Scout** - Clean, minimalist design with elegant styling
-- **SpeakEasy** - Modern gradients and interactive elements
+Check both `/` and `/docs/` at desktop and mobile widths. Verify copy buttons, demo controls, keyboard navigation, reduced motion, and the `/install` response before deploying.
 
-## Sections
+Regenerate the social preview after changing the positioning or logo:
 
-- **Hero** - Introduction with key features and CTAs
-- **Quick Start** - Installation instructions
-- **Features** - Detailed feature cards
-- **How It Works** - Step-by-step workflow
-- **Code Examples** - Usage examples
-- **CTA** - Call-to-action for installation
-- **Footer** - Links and attribution
+```bash
+bun landing/scripts/generate-og.ts
+```
 
 ## Deployment
 
-The landing page can be deployed to any static hosting service:
-
-- **Vercel** (recommended) - Zero configuration deployment
-- **Netlify** - Simple static hosting
-- **GitHub Pages** - Free hosting for open source
-- **Any CDN/static host** - Standard Next.js export
+Pushes to `master` that change `landing/**` run `.github/workflows/deploy-pages.yml`. The workflow publishes `landing/public` directly through GitHub Pages.
 
 ## License
 

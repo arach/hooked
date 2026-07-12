@@ -25,28 +25,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Install dependencies
-        working-directory: ./landing
-        run: pnpm install
-
-      - name: Build Next.js site
-        working-directory: ./landing
-        run: pnpm build
+      - name: Prepare static site
+        run: cp install.sh landing/public/install
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./landing/out
+          path: ./landing/public
 
   deploy:
     environment:

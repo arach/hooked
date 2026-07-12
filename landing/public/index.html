@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Hooked turns local hooks into the right signal—voice alerts, continuation rules, a local dashboard, and a native macOS HUD.">
+  <meta name="theme-color" content="#07090c">
+  <meta property="og:title" content="Hooked — Local hooks, clear signals.">
+  <meta property="og:description" content="Hooks, alerts, and a calm local HUD for the work running in the background.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hooked.arach.dev/">
+  <meta property="og:image" content="https://hooked.arach.dev/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hooked — Local hooks, clear signals.">
+  <meta name="twitter:description" content="Voice alerts, until loops, local history, and a native macOS HUD preview.">
+  <meta name="twitter:image" content="https://hooked.arach.dev/og.png">
+  <title>Hooked — Local hooks, clear signals.</title>
+  <link rel="canonical" href="https://hooked.arach.dev/">
+  <link rel="icon" href="assets/hooked-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20260710-2">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" data-header>
+    <div class="header-inner">
+      <a class="brand" href="#top" aria-label="Hooked home">
+        <img class="brand-mark" src="assets/hooked-mark.svg" alt="" width="30" height="30">
+        <span>Hooked</span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="Primary navigation">
+        <a href="#why">Why Hooked</a>
+        <a href="#signals">Signals</a>
+        <a href="#local">Local by design</a>
+        <a href="docs/">Docs</a>
+      </nav>
+
+      <a class="header-cta" href="#preview">
+        <span>Install Hooked</span>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9M9 4.5 12.5 8 9 11.5"/></svg>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" data-menu-toggle>
+        <span class="sr-only">Toggle navigation</span>
+        <span></span><span></span>
+      </button>
+    </div>
+
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" data-mobile-nav hidden>
+      <a href="#why">Why Hooked</a>
+      <a href="#signals">Signals</a>
+      <a href="#local">Local by design</a>
+      <a href="docs/">Docs</a>
+      <a href="#preview">Install Hooked</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-copy shell">
+        <p class="eyebrow reveal">
+          <span class="live-dot" aria-hidden="true"></span>
+          Hooks, alerts, and a local HUD
+        </p>
+        <h1 id="hero-title" class="reveal">Local hooks.<br><span>Clear signals.</span></h1>
+        <p class="hero-lede reveal">
+          Hooked adds voice alerts, until loops, history, and a local dashboard to Claude Code, with a native macOS HUD in progress.
+        </p>
+        <div class="hero-actions reveal">
+          <a class="button button-primary" href="#demo">
+            Explore the HUD
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4"/></svg>
+          </a>
+          <a class="button button-quiet" href="docs/">Read the docs</a>
+        </div>
+        <ul class="trust-line reveal">
+          <li>MIT npm package</li>
+          <li>Local by default</li>
+          <li>Node 18+ · macOS HUD</li>
+        </ul>
+      </div>
+
+      <div class="product-stage shell reveal" id="demo" data-demo>
+        <div class="stage-halo" aria-hidden="true"></div>
+        <div class="mac-frame">
+          <div class="mac-screen">
+            <div class="wallpaper-glow" aria-hidden="true"></div>
+
+            <div class="mac-menu" aria-hidden="true">
+              <div class="menu-left">
+                <svg class="apple-mark" viewBox="0 0 18 21"><path d="M14.8 11.15c.02-2.12 1.74-3.14 1.82-3.2a3.9 3.9 0 0 0-3.07-1.66c-1.29-.13-2.54.77-3.2.77-.67 0-1.68-.76-2.78-.74a4.08 4.08 0 0 0-3.44 2.1c-1.49 2.57-.38 6.35 1.05 8.43.72 1.02 1.56 2.16 2.66 2.12 1.07-.04 1.47-.68 2.76-.68 1.28 0 1.66.68 2.78.66 1.16-.02 1.89-1.02 2.58-2.05a8.39 8.39 0 0 0 1.18-2.4 3.69 3.69 0 0 1-2.34-3.35ZM12.7 4.93A3.75 3.75 0 0 0 13.56 2a3.85 3.85 0 0 0-2.72 1.4 3.58 3.58 0 0 0-.9 2.82 3.18 3.18 0 0 0 2.76-1.29Z"/></svg>
+                <span>Code</span><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Run</span>
+              </div>
+              <div class="menu-right"><span>⌁</span><span>◒</span><span>9:41</span></div>
+            </div>
+
+            <div class="code-window" aria-hidden="true">
+              <div class="file-rail">
+                <div class="traffic-lights"><i></i><i></i><i></i></div>
+                <div class="rail-icon active">⌘</div>
+                <div class="rail-icon">⌕</div>
+                <div class="rail-icon">⑂</div>
+                <div class="rail-spacer"></div>
+                <div class="rail-icon small">⚙</div>
+              </div>
+              <div class="file-tree">
+                <p class="tree-label">EXPLORER</p>
+                <p class="tree-root"><span>⌄</span> HOOKED</p>
+                <p><span class="folder">⌄</span> Sources</p>
+                <p class="nested"><span class="swift">◇</span> EventStream.swift</p>
+                <p class="nested selected"><span class="swift">◇</span> HookSurface.swift</p>
+                <p class="nested"><span class="swift">◇</span> Placement.swift</p>
+                <p><span class="folder">›</span> Tests</p>
+                <p><span class="doc">≡</span> README.md</p>
+              </div>
+              <div class="editor">
+                <div class="editor-tabs">
+                  <span class="tab active"><i class="swift-diamond">◇</i> HookSurface.swift <b>×</b></span>
+                  <span class="tab"><i class="md-dot">M↓</i> README.md</span>
+                </div>
+                <div class="breadcrumbs">Sources <b>›</b> HookSurface.swift <b>›</b> <span>eventSummary</span></div>
+                <div class="code-lines">
+                  <div><i>18</i><code><em>private func</em> eventSummary(<span>_ event:</span> HookEvent) -&gt; <strong>some</strong> View {</code></div>
+                  <div><i>19</i><code>&nbsp;&nbsp;HStack(<span>alignment:</span> .center, <span>spacing:</span> <b>12</b>) {</code></div>
+                  <div><i>20</i><code>&nbsp;&nbsp;&nbsp;&nbsp;Circle()</code></div>
+                  <div><i>21</i><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.fill(color(<span>for:</span> event.level))</code></div>
+                  <div><i>22</i><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.frame(<span>width:</span> <b>7</b>, <span>height:</span> <b>7</b>)</code></div>
+                  <div><i>23</i><code></code></div>
+                  <div><i>24</i><code>&nbsp;&nbsp;&nbsp;&nbsp;VStack(<span>alignment:</span> .leading, <span>spacing:</span> <b>3</b>) {</code></div>
+                  <div><i>25</i><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Text(event.source.uppercased())</code></div>
+                  <div class="active-line"><i>26</i><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Text(event.title)</code></div>
+                  <div><i>27</i><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Text(event.body ?? <q>“received”</q>)</code></div>
+                  <div><i>28</i><code>&nbsp;&nbsp;&nbsp;&nbsp;}</code></div>
+                  <div><i>29</i><code>&nbsp;&nbsp;}</code></div>
+                  <div><i>30</i><code>}</code></div>
+                </div>
+                <div class="editor-status"><span>main*</span><span>Swift</span><span>Ln 26, Col 9</span></div>
+              </div>
+            </div>
+
+            <div class="hooked-surface is-working" data-surface>
+              <div class="surface-cap">
+                <span class="surface-status" aria-hidden="true"></span>
+                <span class="surface-wordmark">HOOKED</span>
+              </div>
+              <div class="surface-body">
+                <div class="surface-event">
+                  <span class="event-dot" aria-hidden="true"></span>
+                  <div class="event-copy">
+                    <p class="event-meta"><span data-event-source>CLAUDE · STOP HOOK</span><span data-event-time>NOW</span></p>
+                    <p class="event-title" data-event-title>Checking the release build</p>
+                    <p class="event-body" data-event-body>Round 3 · tests still running</p>
+                  </div>
+                  <button class="event-action" type="button" data-event-action>Open</button>
+                </div>
+                <div class="surface-progress" aria-hidden="true"><span data-event-progress></span></div>
+              </div>
+            </div>
+
+            <div class="desktop-dock" aria-hidden="true">
+              <span class="dock-app finder"><i></i><i></i></span>
+              <span class="dock-app terminal">›_</span>
+              <span class="dock-app codex">✦</span>
+              <span class="dock-app safari">⌁</span>
+              <span class="dock-separator"></span>
+              <span class="dock-app trash">⌫</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-controls" role="group" aria-label="Choose a Hooked event">
+          <button type="button" class="scenario is-active" data-scenario="working" aria-pressed="true">
+            <span class="scenario-dot working"></span>
+            <span><b>Working</b><small>Hook is active</small></span>
+          </button>
+          <button type="button" class="scenario" data-scenario="attention" aria-pressed="false">
+            <span class="scenario-dot attention"></span>
+            <span><b>Input required</b><small>Permission or question</small></span>
+          </button>
+          <button type="button" class="scenario" data-scenario="complete" aria-pressed="false">
+            <span class="scenario-dot complete"></span>
+            <span><b>Done</b><small>Checks passed</small></span>
+          </button>
+          <button class="tour-toggle" type="button" aria-label="Pause automatic demo" aria-pressed="false" data-tour-toggle>
+            <svg class="pause-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 4v8M11 4v8"/></svg>
+            <svg class="play-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 7 5-7 5V3Z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <p class="hero-caption shell reveal"><span>01</span> The top edge of your screen becomes a quiet line back to the work.</p>
+    </section>
+
+    <section class="attention-section" id="why" aria-labelledby="attention-title">
+      <div class="attention-grid shell">
+        <div class="section-kicker reveal"><span>Why Hooked</span><span>Attention is finite</span></div>
+        <h2 id="attention-title" class="reveal">Stop checking.<br><span>Start knowing.</span></h2>
+        <p class="attention-lede reveal">Background work shouldn’t demand foreground attention. Hooked turns local events into the right signal at the right moment.</p>
+
+        <div class="attention-steps">
+          <article class="attention-step reveal">
+            <span class="step-number">01</span>
+            <div>
+              <h3>Glance, don’t go looking.</h3>
+              <p>Live status lives at the edge of your workspace—not buried in another tab, terminal, or dashboard.</p>
+            </div>
+          </article>
+          <article class="attention-step reveal">
+            <span class="step-number">02</span>
+            <div>
+              <h3>Only expand when it matters.</h3>
+              <p>A compact signal becomes useful context on event or hover, then gets out of the way on its own.</p>
+            </div>
+          </article>
+          <article class="attention-step reveal">
+            <span class="step-number">03</span>
+            <div>
+              <h3>Jump straight to the work.</h3>
+              <p>Attach an action URL to an event and get back to the exact place that needs your attention.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="signals-section" id="signals" aria-labelledby="signals-title">
+      <div class="shell">
+        <div class="section-heading reveal">
+          <p class="eyebrow"><span class="eyebrow-line"></span>Signal, not noise</p>
+          <h2 id="signals-title">The whole story<br>in a few pixels.</h2>
+          <p>Hooked turns hook activity into a clear state, useful context, and an optional next step. Nothing more until you ask for it.</p>
+        </div>
+
+        <div class="signal-showcase" data-signal-showcase>
+          <div class="signal-tabs" role="tablist" aria-label="Event signal examples">
+            <button type="button" id="signal-tab-working" role="tab" aria-selected="true" aria-controls="signal-panel" tabindex="0" data-signal="working">
+              <span class="signal-index">01</span>
+              <span><b>Working</b><small>Let it run</small></span>
+            </button>
+            <button type="button" id="signal-tab-attention" role="tab" aria-selected="false" aria-controls="signal-panel" tabindex="-1" data-signal="attention">
+              <span class="signal-index">02</span>
+              <span><b>Input required</b><small>Review the request</small></span>
+            </button>
+            <button type="button" id="signal-tab-complete" role="tab" aria-selected="false" aria-controls="signal-panel" tabindex="-1" data-signal="complete">
+              <span class="signal-index">03</span>
+              <span><b>Done</b><small>Pick up the result</small></span>
+            </button>
+            <button type="button" id="signal-tab-error" role="tab" aria-selected="false" aria-controls="signal-panel" tabindex="-1" data-signal="error">
+              <span class="signal-index">04</span>
+              <span><b>Blocked</b><small>See what failed</small></span>
+            </button>
+          </div>
+
+          <div class="signal-panel is-working" id="signal-panel" role="tabpanel" aria-live="polite" aria-labelledby="signal-tab-working">
+            <div class="signal-ambient" aria-hidden="true"></div>
+            <div class="signal-island">
+              <div class="mini-cap"><span></span>HOOKED</div>
+              <div class="mini-event">
+                <i></i>
+                <div><small data-signal-meta>CLAUDE · UNTIL</small><b data-signal-title>Running the full test suite</b><span data-signal-body>142 checks · round 3</span></div>
+                <button type="button" data-signal-action>Open</button>
+              </div>
+            </div>
+            <div class="signal-annotation annotation-one"><span></span><p><b>One status language</b><small>Info, success, warning, or error</small></p></div>
+            <div class="signal-annotation annotation-two"><span></span><p><b>Useful context</b><small>Source, kind, title, and detail</small></p></div>
+            <div class="signal-annotation annotation-three"><span></span><p><b>Direct action</b><small>Jump back with an attached URL</small></p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="fit-section" aria-labelledby="fit-title">
+      <div class="shell fit-grid">
+        <div class="fit-copy reveal">
+          <p class="eyebrow"><span class="eyebrow-line"></span>Made for the Mac</p>
+          <h2 id="fit-title">Built for the notch.<br>Not trapped by it.</h2>
+          <p>The new Hooked HUD detects the real hardware notch when it’s there and becomes a compact floating island when it isn’t—including on external displays.</p>
+          <ul class="check-list">
+            <li><span>✓</span> Physical notch and virtual island modes</li>
+            <li><span>✓</span> Configurable dwell, timing, and geometry</li>
+            <li><span>✓</span> Pin a signal when you want it to stay</li>
+          </ul>
+        </div>
+
+        <div class="display-pair reveal" aria-hidden="true">
+          <div class="display-card display-notch">
+            <div class="display-menu"><span>Finder&nbsp;&nbsp; File&nbsp;&nbsp; Edit</span><span>9:41</span></div>
+            <div class="display-hud"><i></i><b>PATCH READY</b></div>
+            <div class="display-code"><span></span><span></span><span></span><span></span></div>
+            <small>MacBook · notch</small>
+          </div>
+          <div class="display-card display-island">
+            <div class="display-menu"><span>Finder&nbsp;&nbsp; File&nbsp;&nbsp; Edit</span><span>9:41</span></div>
+            <div class="display-hud"><i></i><b>PATCH READY</b></div>
+            <div class="display-code"><span></span><span></span><span></span><span></span></div>
+            <small>Studio Display · island</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-section" id="how-it-works" aria-labelledby="how-title">
+      <div class="shell">
+        <div class="section-heading compact reveal">
+          <p class="eyebrow"><span class="eyebrow-line"></span>One local hooks layer</p>
+          <h2 id="how-title">Hook any tool.<br>Choose how it reaches you.</h2>
+          <p>The published package handles Claude Code hooks today. Local scripts and structured events can feed the native HUD preview; automatic delivery between the two is still in progress.</p>
+        </div>
+
+        <div class="event-flow reveal">
+          <div class="flow-sources">
+            <div><span class="source-icon codex-source">✦</span><p><b>Claude hooks</b><small>Permission, stop, complete</small></p></div>
+            <div><span class="source-icon terminal-source">›_</span><p><b>Local scripts</b><small>Builds, tests, deploys</small></p></div>
+            <div><span class="source-icon api-source">{ }</span><p><b>Structured events</b><small>Anything that emits JSON</small></p></div>
+          </div>
+          <div class="flow-line" aria-hidden="true"><span></span><i></i><i></i><i></i></div>
+          <div class="flow-core">
+            <div class="flow-logo">
+              <img src="assets/hooked-mark.svg" alt="" width="48" height="48">
+            </div>
+            <p><b>Hooked</b><small>Local hooks layer</small></p>
+          </div>
+          <div class="flow-line output" aria-hidden="true"><span></span><i></i></div>
+          <div class="flow-surface">
+            <div class="flow-notch"><span></span></div>
+            <p><b>The right signal</b><small>Voice · HUD · dashboard</small></p>
+          </div>
+        </div>
+
+        <div class="terminal-card reveal">
+          <div class="terminal-top">
+            <div class="terminal-lights"><i></i><i></i><i></i></div>
+            <span>zsh — keep going until it passes</span>
+            <button class="copy-button" type="button" data-copy-target="event-command" aria-label="Copy Hooked command">
+              <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M6.5 5.5V3.8c0-.72.58-1.3 1.3-1.3h6.4c.72 0 1.3.58 1.3 1.3v6.4c0 .72-.58 1.3-1.3 1.3h-1.7M3.8 6.5h6.4c.72 0 1.3.58 1.3 1.3v6.4c0 .72-.58 1.3-1.3 1.3H3.8c-.72 0-1.3-.58-1.3-1.3V7.8c0-.72.58-1.3 1.3-1.3Z"/></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre id="event-command"><code><span class="prompt">$</span> hooked until check <span class="string">"pnpm test"</span>
+
+<span class="flag">Until loop pending.</span>
+<span class="string">Command: pnpm test</span></code></pre>
+          <div class="terminal-result"><span class="success-check">✓</span><span>Check registered</span><small>session-local · explicit override</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="local-section" id="local" aria-labelledby="local-title">
+      <div class="local-noise" aria-hidden="true"></div>
+      <div class="shell local-grid">
+        <div class="local-copy reveal">
+          <p class="eyebrow"><span class="eyebrow-line"></span>Local by design</p>
+          <h2 id="local-title">Your work reports<br>to your Mac.</h2>
+          <p>Hooked keeps state, history, and the HUD’s event path on your machine. You decide which hooks run, what they announce, and when they stop.</p>
+          <div class="local-facts">
+            <div><strong>01</strong><span><b>Local state</b><small>Config, sessions, and history stay close</small></span></div>
+            <div><strong>02</strong><span><b>Opt-in loops</b><small>Continuation is off until you enable it</small></span></div>
+            <div><strong>03</strong><span><b>Published package</b><small>The npm package is MIT licensed</small></span></div>
+          </div>
+        </div>
+
+        <div class="local-visual reveal" aria-hidden="true">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="local-machine">
+            <div class="machine-screen">
+              <div class="machine-notch"><i></i></div>
+              <div class="machine-lines"><span></span><span></span><span></span></div>
+            </div>
+            <div class="machine-base"></div>
+          </div>
+          <div class="packet packet-one"><i></i><span>{ mode: <b>“check”</b> }</span></div>
+          <div class="packet packet-two"><i></i><span>~/.hooked/config.json</span></div>
+          <div class="packet packet-three"><i></i><span>session_id · local</span></div>
+          <span class="local-label">YOUR MAC</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="details-section" aria-labelledby="details-title">
+      <div class="shell">
+        <div class="details-heading reveal">
+          <p class="eyebrow"><span class="eyebrow-line"></span>One utility, fewer check-ins</p>
+          <h2 id="details-title">More than a notification.</h2>
+        </div>
+        <div class="detail-list">
+          <article class="detail-row reveal">
+            <span class="detail-number">01</span>
+            <h3>Continue until it works</h3>
+            <p>Define “done” with any check command or a manual objective. Hooked keeps the run moving until the condition is met.</p>
+            <span class="detail-tag">Until</span>
+          </article>
+          <article class="detail-row reveal">
+            <span class="detail-number">02</span>
+            <h3>Hear when you’re needed</h3>
+            <p>Voice alerts through SpeakEasy announce permissions, waiting states, and completed work when you’re away from the screen.</p>
+            <span class="detail-tag">Voice</span>
+          </article>
+          <article class="detail-row reveal">
+            <span class="detail-number">03</span>
+            <h3>See the right signal</h3>
+            <p>The native macOS HUD turns hook events into compact, short-lived context at the edge of your workspace.</p>
+            <span class="detail-tag">HUD</span>
+          </article>
+          <article class="detail-row reveal">
+            <span class="detail-number">04</span>
+            <h3>Review on your terms</h3>
+            <p>Spin up the local dashboard for event history and settings, then let it close itself when you’re finished.</p>
+            <span class="detail-tag">Dashboard</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="docs-home-section" id="docs" aria-labelledby="docs-home-title">
+      <div class="docs-home-word" aria-hidden="true">DOCS</div>
+      <div class="shell docs-home-grid">
+        <div class="docs-home-copy reveal">
+          <p class="eyebrow"><span class="eyebrow-line"></span>Documentation</p>
+          <h2 id="docs-home-title">Build with<br>the full picture.</h2>
+          <p>Installation, until loops, voice alerts, local history, commands, and the native HUD preview are documented in one place.</p>
+          <a class="button button-primary docs-home-cta" href="docs/">
+            Open the docs
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4"/></svg>
+          </a>
+        </div>
+
+        <nav class="docs-home-links reveal" aria-label="Documentation highlights">
+          <a href="docs/#quickstart">
+            <span>01</span>
+            <p><b>Install</b><small>Install Hooked and check the current status</small></p>
+            <i aria-hidden="true">↗</i>
+          </a>
+          <a href="docs/#until">
+            <span>02</span>
+            <p><b>Until loops</b><small>Work toward an objective or passing check</small></p>
+            <i aria-hidden="true">↗</i>
+          </a>
+          <a href="docs/#dashboard">
+            <span>03</span>
+            <p><b>Dashboard</b><small>Open history and active alerts locally</small></p>
+            <i aria-hidden="true">↗</i>
+          </a>
+          <a href="docs/#native-hud">
+            <span>04</span>
+            <p><b>Native HUD</b><small>What the macOS preview does today</small></p>
+            <i aria-hidden="true">↗</i>
+          </a>
+        </nav>
+      </div>
+    </section>
+
+    <section class="preview-section" id="preview" aria-labelledby="preview-title">
+      <div class="preview-glow" aria-hidden="true"></div>
+      <div class="shell preview-inner reveal">
+        <div class="preview-mark" aria-hidden="true">
+          <img src="assets/hooked-mark.svg" alt="" width="56" height="56">
+        </div>
+        <p class="eyebrow">Hooked 1.1.1 · npm package</p>
+        <h2 id="preview-title">Install Hooked.<br>Keep working.</h2>
+        <p>Install the hooks helper today for voice alerts, until loops, and the local dashboard. The native macOS HUD is joining the same local layer.</p>
+        <div class="preview-actions">
+          <button class="button button-light" type="button" data-copy-value="curl -fsSL https://hooked.arach.dev/install | bash">
+            <span>Copy install command</span>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M6.5 5.5V3.8c0-.72.58-1.3 1.3-1.3h6.4c.72 0 1.3.58 1.3 1.3v6.4c0 .72-.58 1.3-1.3 1.3h-1.7M3.8 6.5h6.4c.72 0 1.3.58 1.3 1.3v6.4c0 .72-.58 1.3-1.3 1.3H3.8c-.72 0-1.3-.58-1.3-1.3V7.8c0-.72.58-1.3 1.3-1.3Z"/></svg>
+          </button>
+          <a class="button button-outline-light" href="docs/">Read the docs</a>
+          <a class="button button-outline-light" href="https://github.com/arach/hooked" target="_blank" rel="noreferrer">View on GitHub</a>
+        </div>
+        <p class="preview-note">The macOS HUD shown above is being folded into Hooked and is not yet included in the published npm package.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-main">
+      <a class="brand footer-brand" href="#top" aria-label="Hooked home">
+        <img class="brand-mark" src="assets/hooked-mark.svg" alt="" width="30" height="30">
+        <span>Hooked</span>
+      </a>
+      <p>Hooks, alerts, and local surfaces<br>for the work running in the background.</p>
+      <nav aria-label="Footer navigation">
+        <a href="#why">Why</a>
+        <a href="#signals">Signals</a>
+        <a href="#local">Local</a>
+        <a href="docs/">Docs</a>
+        <a href="https://www.npmjs.com/package/@arach/hooked" target="_blank" rel="noreferrer">npm</a>
+      </nav>
+    </div>
+    <div class="shell footer-bottom">
+      <span>© <span data-year>2026</span> Hooked</span>
+      <span>Built at the edge of the screen.</span>
+    </div>
+  </footer>
+
+  <div class="toast" role="status" aria-live="polite" data-toast>
+    <svg viewBox="0 0 18 18" aria-hidden="true"><path d="m4 9 3.2 3.2L14 5.8"/></svg>
+    <span>Copied to clipboard</span>
+  </div>
+</body>
+</html>
