@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Documentation for Hooked voice alerts, until loops, local history, dashboard, and native macOS HUD preview.">
+  <meta name="theme-color" content="#090c10">
+  <meta property="og:title" content="Hooked Docs">
+  <meta property="og:description" content="Install Hooked and use voice alerts, until loops, local history, and the dashboard.">
+  <meta property="og:url" content="https://hooked.arach.dev/docs/">
+  <meta property="og:image" content="https://hooked.arach.dev/og.png">
+  <title>Hooked Docs</title>
+  <link rel="canonical" href="https://hooked.arach.dev/docs/">
+  <link rel="icon" href="../assets/hooked-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260712-1">
+  <script src="script.js?v=20260710-3" defer></script>
+</head>
+<body class="docs-page">
+  <a class="skip-link" href="#content">Skip to documentation</a>
+
+  <header class="docs-topbar">
+    <div class="docs-topbar-inner">
+      <a class="brand" href="../" aria-label="Hooked home">
+        <img class="brand-mark" src="../assets/hooked-mark.svg" alt="">
+        <span>Hooked</span>
+        <small>Docs</small>
+      </a>
+      <nav aria-label="Documentation navigation">
+        <a href="#quickstart">Quickstart</a>
+        <a href="#until">Until loops</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#native-hud">Native HUD</a>
+      </nav>
+      <a class="docs-back" href="../">
+        Back to site
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 3.5 11 8l-4.5 4.5M3 8h8"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <main id="content">
+    <div class="docs-shell docs-layout">
+      <aside class="docs-sidebar" aria-label="Documentation navigation rail">
+        <nav aria-label="Documentation sections">
+          <p>Start here</p>
+          <a href="#overview" class="is-active">Overview</a>
+          <a href="#quickstart">Install</a>
+          <a href="#check-setup">Status</a>
+          <p>Use Hooked</p>
+          <a href="#until">Until loops</a>
+          <a href="#voice">Voice alerts</a>
+          <a href="#dashboard">Dashboard</a>
+          <a href="#history">History</a>
+          <p>Reference</p>
+          <a href="#configuration">Configuration</a>
+          <a href="#native-hud">Native HUD</a>
+          <a href="#commands">Commands</a>
+        </nav>
+      </aside>
+
+      <article class="docs-content">
+        <header class="docs-page-intro">
+          <p>Hooked 1.1.1 <span>Local hooks toolkit</span></p>
+          <h1>Hooked</h1>
+          <div>Voice alerts, session-scoped until loops, local history, a lightweight dashboard, and a native macOS surface in progress.</div>
+        </header>
+
+        <section id="overview" class="doc-section doc-intro">
+          <h2>Overview</h2>
+          <p>Hooked connects Claude Code hooks to useful local signals. It can announce when attention is needed, keep a session moving toward a clear objective, preserve event history, and open a temporary local dashboard when you want the wider view.</p>
+
+          <div class="feature-grid">
+            <div><span>01</span><b>Voice alerts</b><p>Hear about permissions, waiting states, and completed work.</p></div>
+            <div><span>02</span><b>Until loops</b><p>Keep working toward an objective or until a command succeeds.</p></div>
+            <div><span>03</span><b>Local context</b><p>Review status and history without sending project state to an account.</p></div>
+          </div>
+
+          <div class="notice notice-info">
+            <span>Default behavior</span>
+            <p>Until loops are opt-in. Hooked only continues a session after you explicitly set an objective or check command.</p>
+          </div>
+        </section>
+
+        <section id="quickstart" class="doc-section">
+          <h2>Install</h2>
+          <p>The installer downloads Hooked, installs its dependencies with your available package manager, and configures Claude Code hooks. It requires Node.js, Git, and pnpm, Bun, or npm.</p>
+
+          <div class="code-block code-block-accent">
+            <div class="code-title"><span>Terminal</span><button type="button" data-copy-target="install-command">Copy</button></div>
+            <pre id="install-command"><code>curl -fsSL https://hooked.arach.dev/install | bash</code></pre>
+          </div>
+
+          <p>The installer enables voice announcements, prepares until loops, and adds the <code>/hooked</code> slash command.</p>
+        </section>
+
+        <section id="check-setup" class="doc-section">
+          <h2>Status</h2>
+          <p>Run status from a project directory to see the current project context, voice setting, active alerts, registered sessions, and until-loop state.</p>
+
+          <div class="code-block">
+            <div class="code-title"><span>Terminal</span><button type="button" data-copy-target="status-command">Copy</button></div>
+            <pre id="status-command"><code>hooked status</code></pre>
+          </div>
+
+          <div class="notice notice-neutral">
+            <span>Project-aware</span>
+            <p>Hooked scopes pending until work to the current project or active session whenever it can identify one.</p>
+          </div>
+        </section>
+
+        <section id="until" class="doc-section">
+          <h2>Until loops</h2>
+          <p>Use an objective when “done” needs human judgment, or a check command when success can be tested directly.</p>
+
+          <div class="code-block">
+            <div class="code-title"><span>Objective</span><button type="button" data-copy-target="until-objective">Copy</button></div>
+            <pre id="until-objective"><code>hooked until "Finish the migration and verify the result"</code></pre>
+          </div>
+
+          <div class="code-block code-block-accent">
+            <div class="code-title"><span>Command check</span><button type="button" data-copy-target="until-check">Copy</button></div>
+            <pre id="until-check"><code>hooked until check "pnpm test"</code></pre>
+          </div>
+
+          <div class="command-list">
+            <div><code>hooked until</code><span>Show pending and active loops</span></div>
+            <div><code>hooked until pause</code><span>Stop after the current cycle</span></div>
+            <div><code>hooked until off</code><span>Clear pending and active loops</span></div>
+          </div>
+        </section>
+
+        <section id="voice" class="doc-section">
+          <h2>Voice alerts</h2>
+          <p>Voice alerts are useful when you are away from the terminal or focused elsewhere. Toggle them at any time, or set volume directly.</p>
+
+          <div class="command-list">
+            <div><code>hooked speak on</code><span>Enable announcements</span></div>
+            <div><code>hooked speak 0.5</code><span>Set volume from 0.0 to 1.0</span></div>
+            <div><code>hooked speak off</code><span>Disable announcements</span></div>
+          </div>
+        </section>
+
+        <section id="dashboard" class="doc-section">
+          <h2>Dashboard</h2>
+          <p>The local dashboard shows recent history, active alerts, and current state. By default it opens on port 3456 and closes after ten minutes.</p>
+
+          <div class="code-block">
+            <div class="code-title"><span>Terminal</span><button type="button" data-copy-target="dashboard-command">Copy</button></div>
+            <pre id="dashboard-command"><code>hooked web</code></pre>
+          </div>
+
+          <div class="command-list">
+            <div><code>hooked web 8080 30</code><span>Use port 8080 and close after 30 minutes</span></div>
+            <div><code>hooked web --foreground</code><span>Keep the server attached to the terminal</span></div>
+          </div>
+        </section>
+
+        <section id="history" class="doc-section">
+          <h2>History</h2>
+          <p>History stays local and can be listed, searched, summarized, exported, or pruned from the CLI.</p>
+
+          <div class="command-list">
+            <div><code>hooked history</code><span>Show the 20 most recent events</span></div>
+            <div><code>hooked history 50</code><span>Choose the number of events</span></div>
+            <div><code>hooked history stats</code><span>Summarize counts by project</span></div>
+            <div><code>hooked history search "permission"</code><span>Search stored events</span></div>
+            <div><code>hooked history export json</code><span>Export all events as JSON</span></div>
+            <div><code>hooked history prune 30</code><span>Remove events older than 30 days</span></div>
+          </div>
+        </section>
+
+        <section id="configuration" class="doc-section">
+          <h2>Configuration</h2>
+          <p>Hooked stores its configuration, session state, and history under <code>~/.hooked</code>. Prefer the CLI for routine changes so the stored format can evolve without changing your workflow.</p>
+
+          <dl class="invariant-list">
+            <div><dt>Voice</dt><dd><code>hooked speak on|off</code> or a volume from <code>0.0</code> to <code>1.0</code></dd></div>
+            <div><dt>Until state</dt><dd>Scoped to a pending project or active session</dd></div>
+            <div><dt>Dashboard</dt><dd>Local server with an automatic close timeout by default</dd></div>
+            <div><dt>History</dt><dd>Local event records with explicit export and pruning commands</dd></div>
+          </dl>
+        </section>
+
+        <section id="native-hud" class="doc-section">
+          <h2>Native HUD</h2>
+          <p>The native preview turns local events into compact notch or floating-island signals on macOS 14 and newer. It supports status levels, short context, timed collapse, hover, pinning, and optional URL actions.</p>
+
+          <div class="hud-flow" role="img" aria-label="Hooked CLI to native HUD integration status">
+            <div><span>01</span><b>Hooked CLI</b><small>Published package</small></div>
+            <i aria-hidden="true"></i>
+            <div class="is-pending"><span>02</span><b>Event bridge</b><small>In progress</small></div>
+            <i aria-hidden="true"></i>
+            <div><span>03</span><b>Native HUD</b><small>Developer preview</small></div>
+          </div>
+
+          <div class="hud-facts">
+            <div><span>Available</span><p>Physical notch and floating island, event levels, hover, timing, pinning, and URL actions.</p></div>
+            <div><span>Connection</span><p>Local events work today. Automatic npm-to-HUD delivery is in progress.</p></div>
+            <div><span>Distribution</span><p>Signing, notarization, public updates, and additional native surfaces are in progress.</p></div>
+          </div>
+        </section>
+
+        <section id="commands" class="doc-section doc-last">
+          <h2>Commands</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td><code>hooked status</code></td><td>Show current Hooked state</td></tr>
+                <tr><td><code>hooked clear</code></td><td>Clear alerts for the current project</td></tr>
+                <tr><td><code>hooked clear all</code></td><td>Clear all active alerts</td></tr>
+                <tr><td><code>hooked until …</code></td><td>Create, inspect, pause, or clear an until loop</td></tr>
+                <tr><td><code>hooked speak …</code></td><td>Read or change voice settings</td></tr>
+                <tr><td><code>hooked web</code></td><td>Open the local dashboard</td></tr>
+                <tr><td><code>hooked history …</code></td><td>List, search, export, summarize, or prune history</td></tr>
+                <tr><td><code>hooked alert</code></td><td>Show active alerts</td></tr>
+                <tr><td><code>hooked statusline</code></td><td>Show Claude Code status-line setup</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </article>
+
+      <aside class="docs-minimap" aria-label="Page overview">
+        <div class="docs-minimap-head">
+          <span>Minimap</span>
+          <b data-minimap-position>01 / 10</b>
+        </div>
+        <nav aria-label="Page minimap">
+          <a href="#overview" class="is-active" style="--mini-width: 72%"><i></i><span>Overview</span></a>
+          <a href="#quickstart" style="--mini-width: 58%"><i></i><span>Install</span></a>
+          <a href="#check-setup" style="--mini-width: 46%"><i></i><span>Status</span></a>
+          <a href="#until" style="--mini-width: 86%"><i></i><span>Until loops</span></a>
+          <a href="#voice" style="--mini-width: 48%"><i></i><span>Voice</span></a>
+          <a href="#dashboard" style="--mini-width: 62%"><i></i><span>Dashboard</span></a>
+          <a href="#history" style="--mini-width: 72%"><i></i><span>History</span></a>
+          <a href="#configuration" style="--mini-width: 56%"><i></i><span>Configuration</span></a>
+          <a href="#native-hud" style="--mini-width: 76%"><i></i><span>Native HUD</span></a>
+          <a href="#commands" style="--mini-width: 64%"><i></i><span>Commands</span></a>
+        </nav>
+        <div class="docs-minimap-progress" aria-hidden="true"><i></i></div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="docs-footer">
+    <div class="docs-shell">
+      <a class="brand" href="../"><img class="brand-mark" src="../assets/hooked-mark.svg" alt=""><span>Hooked</span></a>
+      <p>Local hooks, clear signals, less checking.</p>
+      <span>Hooked 1.1.1 · Native HUD preview</span>
+    </div>
+  </footer>
+
+  <div class="docs-toast" role="status" aria-live="polite" data-docs-toast>Copied to clipboard</div>
+</body>
+</html>
